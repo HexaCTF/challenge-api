@@ -3,7 +3,7 @@ from datetime import datetime
 
 from kafka import KafkaProducer
 
-from external.kafka.exceptions import ProducerException
+from app.extensions.kafka.exceptions import ProducerException
 
 
 class KafkaEventProducer:

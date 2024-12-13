@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-from external.db.exceptions import QueryException, ConnectionException
+from app.extensions.db.exceptions import QueryException, ConnectionException
 
 
 class DatabaseConnection:

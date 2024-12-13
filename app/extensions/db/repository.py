@@ -1,4 +1,4 @@
-from external.db.exceptions import QueryException
+from app.extensions.db.exceptions import QueryException
 
 
 class BaseRepository:

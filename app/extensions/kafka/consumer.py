@@ -1,7 +1,7 @@
 from kafka import KafkaConsumer
 import json
 
-from external.kafka.exceptions import ConsumerException
+from app.extensions.kafka.exceptions import ConsumerException
 
 
 class KafkaEventConsumer:
