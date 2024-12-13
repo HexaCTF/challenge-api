@@ -1,0 +1,5 @@
+Flask==2.3.3
+kafka-python==2.0.2
+SQLAlchemy==2.0.20
+pymysql==1.0.3
+kubernetes==26.1.0
