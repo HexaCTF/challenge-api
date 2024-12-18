@@ -75,4 +75,4 @@ class FlaskKafkaConsumer:
             logger.info("Consumer thread ending")
 
 kafka_consumer = FlaskKafkaConsumer()
-db = FlaskDatabase()
+# db = FlaskDatabase()
