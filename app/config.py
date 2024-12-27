@@ -12,6 +12,6 @@ class Config:
     # DB_NAME = os.getenv('DB_NAME', 'your_database')
 
     # Kafka configuration
-    KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
-    KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'challenge_events')
-    KAFKA_GROUP_ID = os.getenv('KAFKA_GROUP_ID', 'user_group')
+    KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9093')
+    KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'challenge-status')
+    KAFKA_GROUP_ID = os.getenv('KAFKA_GROUP_ID', 'challenge-consumer-group')

@@ -1,54 +1,59 @@
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
-
 
 class MessageHandler:
     @staticmethod
     def handle_message(message):
         """
-        Handle incoming Kafka messages
+        Handle incoming Kafka messages from Go producer
 
         Args:
-            message (dict): Kafka message payload
+            message (dict): Message with userId, problemId, newStatus, timestamp
         """
         try:
-            event_type = message.get('event_type')
-            payload = message.get('payload', {})
+            # Extract data from the Go-produced StatusMessage
+            user_id = message.get('userId')
+            problem_id = message.get('problemId')
+            new_status = message.get('newStatus')
+            timestamp = message.get('timestamp')
 
-            if event_type == 'challenge_viewed':
-                MessageHandler._handle_challenge_viewed(payload)
-            elif event_type == 'challenge_created':
-                MessageHandler._handle_challenge_created(payload)
-            elif event_type == 'challenge_updated':
-                MessageHandler._handle_challenge_updated(payload)
-            elif event_type == 'challenge_deleted':
-                MessageHandler._handle_challenge_deleted(payload)
+            if not all([user_id, problem_id, new_status, timestamp]):
+                logger.warning(f"Missing required fields in message: {message}")
+                return
+
+            # Log the received message
+            logger.info(f"Received status update - User: {user_id}, Problem: {problem_id}, Status: {new_status}")
+
+            # Handle different status types
+            if new_status == "Created":
+                MessageHandler._handle_created_status(user_id, problem_id, timestamp)
+            elif new_status == "Deleted":
+                MessageHandler._handle_deleted_status(user_id, problem_id, timestamp)
             else:
-                logger.warning(f"Unknown event type: {event_type}")
+                logger.warning(f"Unknown status type: {new_status}")
 
         except Exception as e:
             logger.error(f"Error handling message: {e}")
             # Don't raise the exception - we want to continue processing messages
 
     @staticmethod
-    def _handle_challenge_viewed(payload):
-        challenge_id = payload.get('challenge_id')
-        logger.info(f"Challenge viewed: {challenge_id}")
-        # Add your business logic here
+    def _handle_created_status(user_id, problem_id, timestamp):
+        """Handle Created status"""
+        logger.info(f"Challenge {problem_id} has been created for user {user_id}")
+        print("\n=== Challenge Created ===")
+        print(f"User: {user_id}")
+        print(f"Problem: {problem_id}")
+        print(f"Time: {timestamp}")
+        print("=======================\n")
 
     @staticmethod
-    def _handle_challenge_created(payload):
-        logger.info(f"New challenge created: {payload}")
-        # Add your business logic here
-
-    @staticmethod
-    def _handle_challenge_updated(payload):
-        challenge_id = payload.get('challenge_id')
-        logger.info(f"Challenge updated: {challenge_id}")
-        # Add your business logic here
-
-    @staticmethod
-    def _handle_challenge_deleted(payload):
-        challenge_id = payload.get('challenge_id')
-        logger.info(f"Challenge deleted: {challenge_id}")
+    def _handle_deleted_status(user_id, problem_id, timestamp):
+        """Handle Deleted status"""
+        logger.info(f"Challenge {problem_id} has been deleted for user {user_id}")
+        print("\n=== Challenge Deleted ===")
+        print(f"User: {user_id}")
+        print(f"Problem: {problem_id}")
+        print(f"Time: {timestamp}")
+        print("=======================\n")

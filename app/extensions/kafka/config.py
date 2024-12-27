@@ -7,20 +7,10 @@ class KafkaConfig:
         group_id=None,
         **kwargs
     ):
-        self.bootstrap_servers = bootstrap_servers or ['localhost:9092']
-        self.topic = topic or 'default_topic'
-        self.group_id = group_id or 'default_group'
+        self.bootstrap_servers = bootstrap_servers or ['localhost:9093']
+        self.topic = topic or 'challenge-status'
+        self.group_id = group_id or 'challenge-consumer-group'
         self.additional_config = kwargs
-
-    @property
-    def producer_config(self):
-        return {
-            'bootstrap_servers': self.bootstrap_servers,
-            'acks': 'all',
-            'retries': 3,
-            'retry_backoff_ms': 100,
-            **self.additional_config
-        }
 
     @property
     def consumer_config(self):
