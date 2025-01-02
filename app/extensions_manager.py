@@ -1,25 +1,12 @@
 import logging
 from threading import Thread
 
-from app.extensions.db import DatabaseConfig, DatabaseConnection
 from app.extensions.kafka import KafkaConfig, KafkaEventConsumer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class FlaskDatabase:
-    def __init__(self):
-        self.connection = None
-
-    def init_app(self, app):
-        config = DatabaseConfig(
-            host=app.config['DB_HOST'],
-            user=app.config['DB_USER'],
-            password=app.config['DB_PASSWORD'],
-            database=app.config['DB_NAME']
-        )
-        self.connection = DatabaseConnection(config)
-
+ # FlaskKafkaConsumer는 Kafka를 Consume할때 사용됩니다.
 class FlaskKafkaConsumer:
     def __init__(self):
         self.consumer = None
@@ -74,5 +61,4 @@ class FlaskKafkaConsumer:
         finally:
             logger.info("Consumer thread ending")
 
-kafka_consumer = FlaskKafkaConsumer()
-# db = FlaskDatabase()
+# kafka_consumer = FlaskKafkaConsumer()
