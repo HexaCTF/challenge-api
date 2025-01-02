@@ -12,7 +12,7 @@ def create_challenge(challenge_id):
         """
         Challenge 필수사항
         - Challenge 정보 데이터베이스에 저장 
-        - Challenge의 상태가 실행중이라면 에러 메세지 반환
+        - Challenge의 상태가 실행중이라면 실행중인 컨테이너의 정보(URL, 포트번호 등)을 반환
         """        
        
         
