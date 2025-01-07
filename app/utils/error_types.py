@@ -3,6 +3,7 @@ from enum import Enum
 
 class ApiErrorTypes(str, Enum):
     """API 에러 타입 정의"""
+    
     # 인증 관련 에러
     SESSION_EXPIRED = "SESSION_EXPIRED"
     INVALID_TOKEN = "INVALID_TOKEN"

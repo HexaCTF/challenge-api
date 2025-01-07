@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-from app.extensions import db
+from app.extensions_manager import db
 from sqlalchemy import func, Enum, ForeignKey, CheckConstraint
+from sqlalchemy.orm import relationship
 
 def current_time_kst():
     return datetime.utcnow() + timedelta(hours=9)
@@ -82,8 +83,9 @@ class Challenges(db.Model):
     unlockChallenges = db.Column(db.String(255), default='', nullable=False)
     isPersistence = db.Column(db.Boolean, default=False, nullable=False)
 
-# UserChallenges Table Model
+
 class UserChallenges(db.Model):
+    """사용자 챌린지 모델"""
     __tablename__ = 'UserChallenges'
 
     idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -91,39 +93,35 @@ class UserChallenges(db.Model):
     C_idx = db.Column(db.Integer, ForeignKey('Challenges.idx'), nullable=False)
     userChallengeName = db.Column(db.String(255), nullable=False)
     port = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String, default='None', nullable=False)
-    createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)  # 함수 참조
+    status = db.Column(db.String(50), default='None', nullable=False)
+    createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
+
+    # 관계 설정
+    user = relationship('Users', backref='challenges')
+    challenge = relationship('Challenges', backref='user_challenges')
 
     __table_args__ = (
         CheckConstraint('port >= 15000 AND port <= 30000', name='checkPort'),
     )
 
-# Submissions Table Model
-class Submissions(db.Model):
-    __tablename__ = 'Submissions'
+    def __init__(self, username: str, C_idx: int, userChallengeName: str, port: int, status: str = 'None'):
+        self.username = username
+        self.C_idx = C_idx
+        self.userChallengeName = userChallengeName
+        self.port = port
+        self.status = status
 
-    idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    C_idx = db.Column(db.Integer, ForeignKey('Challenges.idx'), nullable=False)
-    username = db.Column(db.String(20), ForeignKey('Users.username'), nullable=False)
-    teamName = db.Column(db.String(20), nullable=False)
-    title = db.Column(db.String(255), nullable=False)
-    type = db.Column(db.Boolean, nullable=False)
-    provided = db.Column(db.String(255), nullable=False)
-    currentStatus = db.Column(db.Boolean, default=True, nullable=False)
-    createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
+    def to_dict(self) -> dict:
+        """모델을 딕셔너리로 변환"""
+        return {
+            'idx': self.idx,
+            'username': self.username,
+            'C_idx': self.C_idx,
+            'userChallengeName': self.userChallengeName,
+            'port': self.port,
+            'status': self.status,
+            'createdAt': self.createdAt.isoformat()
+        }
 
-class Configs(db.Model):
-    __tablename__ = 'Configs'
 
-    idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(20), ForeignKey('Users.username'), nullable=False)
-    teamMode = db.Column(db.Boolean, default=True, nullable=False)
-    teamLimit = db.Column(db.Integer, default=0, nullable=False)
-    challengeVisibility = db.Column(Enum('Public', 'Private', 'Admins Only', name='visibility_enum'), default='Admins Only', nullable=False)
-    accountVisibility = db.Column(Enum('Public', 'Private', 'Admins Only', name='visibility_enum'), default='Admins Only', nullable=False)
-    scoreVisibility = db.Column(Enum('Public', 'Private', 'Hidden', 'Admins Only', name='visibility_enum'), default='Admins Only', nullable=False)
-    registrationVisibility = db.Column(Enum('Public', 'Private', name='visibility_enum'), default='Private', nullable=False)
-    startTime = db.Column(db.DateTime, nullable=False)
-    endTime = db.Column(db.DateTime, nullable=False)
-    freezeTime = db.Column(db.DateTime, nullable=False)
-    updatedAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
+    
