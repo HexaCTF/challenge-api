@@ -13,7 +13,7 @@ class MessageHandler:
             message (dict): Message with userId, problemId, newStatus, timestamp
         """
         try:
-            # Extract data from the Go-produced StatusMessage
+            # 데이터 필드 추출 
             user_id = message.get('userId')
             problem_id = message.get('problemId')
             new_status = message.get('newStatus')
@@ -23,14 +23,9 @@ class MessageHandler:
                 logger.warning(f"Missing required fields in message: {message}")
                 return
 
-            # Log the received message
-            logger.info(f"Received status update - User: {user_id}, Problem: {problem_id}, Status: {new_status}")
-
-            # Handle different status types
-            if new_status == "Created":
-                MessageHandler._handle_created_status(user_id, problem_id, timestamp)
-            elif new_status == "Deleted":
-                MessageHandler._handle_deleted_status(user_id, problem_id, timestamp)
+            # 상태값을 저장하는 메서드 호출
+            if new_status == "Created" or new_status == "Running" or new_status == "Completed" or new_status == "Error":
+                MessageHandler._handle_save_status(user_id, problem_id, new_status, timestamp)
             else:
                 logger.warning(f"Unknown status type: {new_status}")
 
@@ -39,21 +34,8 @@ class MessageHandler:
             # Don't raise the exception - we want to continue processing messages
 
     @staticmethod
-    def _handle_created_status(user_id, problem_id, timestamp):
-        """Handle Created status"""
-        logger.info(f"Challenge {problem_id} has been created for user {user_id}")
-        print("\n=== Challenge Created ===")
-        print(f"User: {user_id}")
-        print(f"Problem: {problem_id}")
-        print(f"Time: {timestamp}")
-        print("=======================\n")
-
-    @staticmethod
-    def _handle_deleted_status(user_id, problem_id, timestamp):
-        """Handle Deleted status"""
-        logger.info(f"Challenge {problem_id} has been deleted for user {user_id}")
-        print("\n=== Challenge Deleted ===")
-        print(f"User: {user_id}")
-        print(f"Problem: {problem_id}")
-        print(f"Time: {timestamp}")
-        print("=======================\n")
+    def _handle_save_status(user_id, problem_id, new_status, timestamp):
+        """상태값을 데이터베이스에 저장하는 메소드"""
+        # TODO - Create a new userChallenge Object to save the status
+        
+        pass 

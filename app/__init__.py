@@ -22,11 +22,11 @@ def create_app(config_class=Config):
 
     # Extension 초기화 
     kafka_consumer.init_app(app)
-        
+    db.init_app(app)
+    
     # blueprint 등록
     app.register_blueprint(challenge_bp, url_prefix='/challenges')
 
-    # * Kafka 설정(추후 주석 제거 예정) 
     consumer_thread = threading.Thread(
         target=start_kafka_consumer,
         args=(app,),
