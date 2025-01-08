@@ -13,7 +13,7 @@ class Config:
 
     # SQLAlchemy configuration
     SQLALCHEMY_DATABASE_URI = (
-        f"mariadb+mariadbconnector://{DB_USER}:{DB_PASSWORD}@"
+        f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@"
         f"{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -26,6 +26,6 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     
     # Kafka configuration
-    KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'kafka:9092')
+    KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9093')
     KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'challenge-status')
     KAFKA_GROUP_ID = os.getenv('KAFKA_GROUP_ID', 'challenge-consumer-group')

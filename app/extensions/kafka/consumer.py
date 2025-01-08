@@ -6,9 +6,9 @@ from app.extensions.kafka.exceptions import ConsumerException
 
 class StatusMessage:
    """상태 메시지를 표현하는 클래스"""
-   def __init__(self, userId: str, problemId: str, newStatus: str, timestamp: str):
+   def __init__(self, user: str, problemId: str, newStatus: str, timestamp: str):
        # 메시지의 기본 속성들을 초기화
-       self.userId = userId          # 사용자 ID
+       self.user = user          # 사용자 ID
        self.problemId = problemId    # 문제 ID 
        self.newStatus = newStatus    # 새로운 상태
        self.timestamp = timestamp    # 타임스탬프
@@ -24,7 +24,7 @@ class StatusMessage:
            StatusMessage 인스턴스
        """
        return cls(
-           userId=data['userId'],
+           user=data['user'],
            problemId=data['problemId'],
            newStatus=data['newStatus'],
            timestamp=data['timestamp']
@@ -32,7 +32,7 @@ class StatusMessage:
 
    def __str__(self) -> str:
        """객체를 문자열로 표현"""
-       return f"StatusMessage(userId={self.userId}, problemId={self.problemId}, newStatus={self.newStatus}, timestamp={self.timestamp})"
+       return f"StatusMessage(user={self.user}, problemId={self.problemId}, newStatus={self.newStatus}, timestamp={self.timestamp})"
 
 class KafkaEventConsumer:
    """Kafka 이벤트 소비자 클래스"""

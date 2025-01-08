@@ -1,0 +1,104 @@
+version: "3.8"
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.0
+    container_name: challenge_zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: challenge_kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    restart: unless-stopped
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: challenge_kafka_ui
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    restart: unless-stopped
+
+  mariadb:
+    image: mariadb:10.6
+    container_name: challenge_db
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=challenge_db
+      - MYSQL_USER=challenge_user
+      - MYSQL_PASSWORD=challenge_password
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: unless-stopped
+
+  challenge-operator:
+    image: hexactf/challenge-operator:latest
+    network_mode: "host"
+    volumes:
+      - type: bind
+        source: ${HOME}/.kube/config
+        target: /home/nonroot/.kube/config
+        read_only: true
+    environment:
+      DEVELOPMENT: "true"
+      METRICS_ADDR: ":8081"
+      KAFKA_BROKERS: "localhost:9093"
+      LOG_LEVEL: "debug"
+      KUBECONFIG: "/home/nonroot/.kube/config"
+    depends_on:
+      - kafka
+
+  app:
+    image: hexactf/challenge-api:latest
+    container_name: challenge_app
+    network_mode: "host"
+    environment:
+      - FLASK_ENV=development
+      # Database
+      - DB_HOST=localhost
+      - DB_PORT=3306
+      - DB_NAME=challenge_db
+      - DB_USER=challenge_user
+      - DB_PASSWORD=challenge_password
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=10
+      # Security
+      - SECRET_KEY=your-super-secret-key-here
+      # Kafka
+      - KAFKA_BOOTSTRAP_SERVERS=localhost:9093
+      - KAFKA_TOPIC=challenge-status
+      - KAFKA_GROUP_ID=challenge-consumer-group
+    depends_on:
+      - mariadb
+      - kafka
+    restart: unless-stopped
+
+volumes:
+  mariadb_data:
