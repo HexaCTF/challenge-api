@@ -1,59 +1,77 @@
 import logging
-from datetime import datetime
+from typing import Any, Dict
+from app.extensions.db.repository import UserChallengesRepository
 
 logger = logging.getLogger(__name__)
 
 class MessageHandler:
+    VALID_STATUSES = {'Creating', 'Running', 'Deleted', 'Error'}
+
     @staticmethod
-    def handle_message(message):
+    def validate_message(message: Dict[str, Any]) -> tuple[str, str, str, str]:
         """
-        Handle incoming Kafka messages from Go producer
+        Validate message and extract fields
 
         Args:
-            message (dict): Message with userId, problemId, newStatus, timestamp
+            message: Kafka message
+
+        Returns:
+            Tuple of (username, problem_id, new_status, timestamp)
         """
         try:
-            # Extract data from the Go-produced StatusMessage
-            user_id = message.get('userId')
-            problem_id = message.get('problemId')
-            new_status = message.get('newStatus')
-            timestamp = message.get('timestamp')
+            username = message.user
+            problem_id = message.problemId
+            new_status = message.newStatus
+            timestamp = message.timestamp
+        except AttributeError:
+            username = message['user']
+            problem_id = message['problemId']
+            new_status = message['newStatus']
+            timestamp = message['timestamp']
 
-            if not all([user_id, problem_id, new_status, timestamp]):
-                logger.warning(f"Missing required fields in message: {message}")
-                return
+        if not all([username, problem_id, new_status, timestamp]):
+            raise ValueError(f"Missing required fields in message: {message}")
 
-            # Log the received message
-            logger.info(f"Received status update - User: {user_id}, Problem: {problem_id}, Status: {new_status}")
+        if new_status not in MessageHandler.VALID_STATUSES:
+            raise ValueError(f"Invalid status type: {new_status}")
 
-            # Handle different status types
-            if new_status == "Created":
-                MessageHandler._handle_created_status(user_id, problem_id, timestamp)
-            elif new_status == "Deleted":
-                MessageHandler._handle_deleted_status(user_id, problem_id, timestamp)
+        return username, problem_id, new_status, timestamp
+
+    @staticmethod
+    def handle_message(message: Dict[str, Any]):
+        """
+        Handle consumed Kafka message
+        Args:
+            message: Kafka message
+        """
+        try:
+            username, problem_id, new_status, _ = MessageHandler.validate_message(message)
+            
+            # Create repository with current session
+            repo = UserChallengesRepository()
+            
+            challenge_name = f"{username}_{problem_id}"
+            
+            challenge = repo.get_by_user_challenge_name(challenge_name)
+            
+            if not challenge and new_status == "Creating":
+                challenge = repo.create(
+                    username=username,
+                    C_idx=int(problem_id),
+                    userChallengeName=challenge_name,
+                    port=0,  # Initial port value
+                    status=new_status
+                )
+                if not challenge:
+                    raise ValueError(f"Failed to create challenge: {challenge_name}")
             else:
-                logger.warning(f"Unknown status type: {new_status}")
-
+                success = repo.update_status(challenge, new_status)
+                if not success:
+                    raise ValueError(f"Failed to update challenge status: {challenge_name}")
+        
+        except ValueError as e:
+            logger.warning(f"Invalid message format: {str(e)}")
         except Exception as e:
-            logger.error(f"Error handling message: {e}")
-            # Don't raise the exception - we want to continue processing messages
-
-    @staticmethod
-    def _handle_created_status(user_id, problem_id, timestamp):
-        """Handle Created status"""
-        logger.info(f"Challenge {problem_id} has been created for user {user_id}")
-        print("\n=== Challenge Created ===")
-        print(f"User: {user_id}")
-        print(f"Problem: {problem_id}")
-        print(f"Time: {timestamp}")
-        print("=======================\n")
-
-    @staticmethod
-    def _handle_deleted_status(user_id, problem_id, timestamp):
-        """Handle Deleted status"""
-        logger.info(f"Challenge {problem_id} has been deleted for user {user_id}")
-        print("\n=== Challenge Deleted ===")
-        print(f"User: {user_id}")
-        print(f"Problem: {problem_id}")
-        print(f"Time: {timestamp}")
-        print("=======================\n")
+            logger.error(f"Error handling message: {str(e)}", exc_info=True)
+            # Optionally re-raise if you want the error to propagate
+            raise

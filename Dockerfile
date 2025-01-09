@@ -1,21 +1,25 @@
-# Dockerfile
 FROM python:3.9-slim
+
+RUN apt-get update && apt-get install -y \
+    python3-dev \
+    libmariadb3 \
+    libmariadb-dev \
+    build-essential \
+    pkg-config \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 
 WORKDIR /app
 
-# Copy requirements first for better cache
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./app .
+COPY . .
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app \
-    FLASK_APP=app.py
+
+ENV MARIADB_CONFIG=/usr/bin/mariadb_config
 
 EXPOSE 5000
 
-# Run flask directly
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["python", "app.py"]
