@@ -9,7 +9,7 @@ def current_time_kst():
 # Users Table Model
 class Users(db.Model):
     __tablename__ = 'Users'
-
+    
     email = db.Column(db.String(255), primary_key=True, nullable=False, unique=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
@@ -100,9 +100,9 @@ class UserChallenges(db.Model):
     user = relationship('Users', backref='challenges')
     challenge = relationship('Challenges', backref='user_challenges')
 
-    __table_args__ = (
-        CheckConstraint('port >= 15000 AND port <= 30000', name='checkPort'),
-    )
+    # __table_args__ = (
+    #     CheckConstraint('(port == 0) OR (port >= 15000 AND port <= 30000)', name='checkPort'),
+    # )
 
     def __init__(self, username: str, C_idx: int, userChallengeName: str, port: int, status: str = 'None'):
         self.username = username

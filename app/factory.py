@@ -26,7 +26,7 @@ def create_app(config_class=Config):
     
     with app.app_context():
         db.create_all()
-    # blueprint 등록
+    
     app.register_blueprint(challenge_bp, url_prefix='/challenges')
 
     consumer_thread = threading.Thread(
