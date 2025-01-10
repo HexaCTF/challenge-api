@@ -4,7 +4,7 @@ from typing import List, Optional
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 from app.extensions_manager import db
-from app.extensions.db.models import UserChallenges, current_time_kst
+from app.extensions.db.models import Challenges, UserChallenges, current_time_kst
 
 logger = logging.getLogger(__name__)
 
@@ -59,3 +59,19 @@ class UserChallengesRepository:
             logger.error(f"Error updating challenge port: {e}")
             db.session.rollback()
             return False
+        
+
+class ChallengeRepository:
+    @staticmethod
+    def get_challenge_name(challenge_id: int) -> Optional[str]:
+        """
+        Get challenge name (title) by challenge ID
+        
+        Args:
+            challenge_id (int): The ID of the challenge to look up
+            
+        Returns:
+            Optional[str]: The title of the challenge if found, None otherwise
+        """
+        challenge = Challenges.query.get(challenge_id)
+        return challenge.title if challenge else None
