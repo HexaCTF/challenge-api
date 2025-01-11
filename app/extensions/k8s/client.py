@@ -9,7 +9,7 @@ from app.extensions.db.repository import ChallengeRepository, UserChallengesRepo
 from app.extensions.k8s.exceptions import ChallengeConflictError, ChallengeRequestError, OperatorRequestError, UserChallengeRequestError
 from app.utils.exceptions import ApiException
 
-MAX_RETRIES = 5
+MAX_RETRIES = 3
 SLEEP_INTERVAL = 2
 
 logger = logging.getLogger(__name__)
@@ -28,11 +28,6 @@ class K8sClient:
     def create_challenge_resource(self, challenge_id, username, namespace="default"):
         """
         Challenge CR를 생성한 후 NodePort를 확인한다.
-        TODO - 코드 정리 필요 
-        1. ChallengeDefinition 조회 및 필요 정보 추출
-        2. Challenge 생성
-        3. NodePort 확인, 없다면 재시도 
-        4. NodePort 업데이트
         """
         try:
             # Challenge definition 조회
@@ -70,48 +65,36 @@ class K8sClient:
                 }
             }
             
-            retry_count = 0
-            endpoint = None 
-            while retry_count < MAX_RETRIES:
-                try:
-                    # Challenge CR 생성
-                    challenge = self.custom_api.create_namespaced_custom_object(
-                        group="apps.hexactf.io",
-                        version="v1alpha1",
-                        namespace=namespace,
-                        plural="challenges",
-                        body=challenge_manifest
-                    )
-                    
-                    # Challenge status 확인
-                    if not challenge['status']:
-                        retry_count +=1
-                        time.sleep(SLEEP_INTERVAL)
-                        continue
-                        
-                    
-                    if not challenge['status']['endpoint']:
-                        retry_count +=1
-                        time.sleep(SLEEP_INTERVAL)
-                        continue
-                    
+            challenge = self.custom_api.create_namespaced_custom_object(
+                group="apps.hexactf.io",
+                version="v1alpha1",
+                namespace=namespace,
+                plural="challenges",
+                body=challenge_manifest
+            )
+            
+            # Challenge status 확인
+            # TODO(Update) - 재시도를  대기 vs 재요청 중 하나로 변경 
+            if not challenge['status']['endpoint']:
+                retries = 0
+                while retries < MAX_RETRIES:
+                    time.sleep(SLEEP_INTERVAL)
                     endpoint = challenge['status']['endpoint']
-                    # NodePort update
                     if endpoint:
-                        success = UserChallengesRepository.update_port(challenge_name, endpoint)
-                        if not success:
-                            raise DBUpdateError(f"Failed to update UserChallenge with NodePort: {endpoint}")
-                    
-                except ApiException as e:
-                    if e.status == 409:
-                        # TODO - 
-                        pass 
-                    else:
-                        retry_count += 1
-                        time.sleep(SLEEP_INTERVAL)
+                        break
+                    retries += 1
+
+                if not endpoint:
+                    raise UserChallengeRequestError("NodePort not found after retries")
+            
+            endpoint = challenge['status']['endpoint']
+            # NodePort update
+            if endpoint:
+                success = UserChallengesRepository.update_port(challenge_name, endpoint)
+                if not success:
+                    raise DBUpdateError(f"Failed to update UserChallenge with NodePort: {endpoint}")
 
             return endpoint
-
         except ApiException as e:
             if e.status == 409:
                 raise ChallengeConflictError(
@@ -137,29 +120,4 @@ class K8sClient:
         pattern = r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
         return bool(re.match(pattern, name))
     
-    def _get_service_nodeport(self, user, challenge_id, namespace="default"):
-        """Get NodePort from the service using the correct service name pattern"""
-        try:
-            service_name = f"svc-{user}-{challenge_id}"
-
-            service = self.core_api.read_namespaced_service(
-                name=service_name,
-                namespace=namespace
-            )
-
-            if service.spec.ports:
-                nodeport = service.spec.ports[0].node_port
-                return nodeport
-
-            logger.warning(f"No ports found for service {service_name}")
-            return None
-
-        except client.rest.ApiException as e:
-            if e.status == 404:
-                logger.warning(f"Service {service_name} not found")
-                return None
-            else:
-                raise UserChallengeRequestError(
-                    f"NodePort error: {e.reason}",
-                )
  
