@@ -6,8 +6,9 @@ import logging
 
 from app.extensions.db.exceptions import DBUpdateError
 from app.extensions.db.repository import ChallengeRepository, UserChallengesRepository
-from app.extensions.k8s.exceptions import ChallengeConflictError, ChallengeRequestError, OperatorRequestError, UserChallengeRequestError
+from app.extensions.k8s.exceptions import ChallengeConflictError, UserChallengeRequestError
 from app.utils.exceptions import ApiException
+
 
 MAX_RETRIES = 3
 SLEEP_INTERVAL = 2
@@ -25,9 +26,11 @@ class K8sClient:
         self.core_api = client.CoreV1Api()
 
     
-    def create_challenge_resource(self, challenge_id, username, namespace="default"):
+    def create_challenge_resource(self, challenge_id, username, namespace="default") -> int:
         """
         Challenge CR를 생성한 후 NodePort를 확인한다.
+        
+        return: endpoint(NodePort) 
         """
         try:
             # Challenge definition 조회
@@ -72,21 +75,7 @@ class K8sClient:
                 plural="challenges",
                 body=challenge_manifest
             )
-            
-            # Challenge status 확인
-            # TODO(Update) - 재시도를  대기 vs 재요청 중 하나로 변경 
-            if not challenge['status']['endpoint']:
-                retries = 0
-                while retries < MAX_RETRIES:
-                    time.sleep(SLEEP_INTERVAL)
-                    endpoint = challenge['status']['endpoint']
-                    if endpoint:
-                        break
-                    retries += 1
 
-                if not endpoint:
-                    raise UserChallengeRequestError("NodePort not found after retries")
-            
             endpoint = challenge['status']['endpoint']
             # NodePort update
             if endpoint:

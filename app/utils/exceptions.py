@@ -4,7 +4,7 @@ from app.utils.error_types import ApiErrorTypes
 
 class ApiException(Exception):
     """기본 API 예외 클래스"""
-    def __init__(self, error_type: ErrorTypes, message: str, status_code: int = 500):
+    def __init__(self, error_type: ApiErrorTypes, message: str, status_code: int = 500):
         self.error_type = error_type
         self.message = message
         self.status_code = status_code

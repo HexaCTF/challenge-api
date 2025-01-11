@@ -1,4 +1,4 @@
-# app/__init__.py
+
 from flask import Flask
 import threading
 
@@ -27,7 +27,7 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
     
-    app.register_blueprint(challenge_bp, url_prefix='/challenges')
+    app.register_blueprint(challenge_bp, url_prefix='/v1/user-challenges')
 
     consumer_thread = threading.Thread(
         target=start_kafka_consumer,

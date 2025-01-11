@@ -78,11 +78,12 @@ services:
   app:
     image: hexactf/challenge-api:latest
     container_name: challenge_app
-    network_mode: "host"
+    ports:
+      - "5001:5000"
     environment:
       - FLASK_ENV=development
       # Database
-      - DB_HOST=localhost
+      - DB_HOST=mariadb
       - DB_PORT=3306
       - DB_NAME=challenge_db
       - DB_USER=challenge_user
@@ -92,7 +93,7 @@ services:
       # Security
       - SECRET_KEY=your-super-secret-key-here
       # Kafka
-      - KAFKA_BOOTSTRAP_SERVERS=localhost:9093
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - KAFKA_TOPIC=challenge-status
       - KAFKA_GROUP_ID=challenge-consumer-group
     depends_on:
