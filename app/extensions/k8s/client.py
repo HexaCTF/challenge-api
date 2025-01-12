@@ -137,4 +137,31 @@ class K8sClient:
         pattern = r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
         return bool(re.match(pattern, name))
     
+    def delete_userchallenge(self, username, challenge_id, namespace="default"):
+        """
+        사용자 챌린지 삭제
+        """
+        
+        challenge_name = f"challenge-{challenge_id}-{username}"
+        user_challenge_repo = UserChallengesRepository()
+        user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
+        if not user_challenge:
+            raise UserChallengeRequestError(f"UserChallenge not found: {challenge_name}")
+        
+        try:
+            self.custom_api.delete_namespaced_custom_object(
+                group="apps.hexactf.io",
+                version="v1alpha1",
+                namespace=namespace,
+                plural="challenges",
+                name=challenge_name
+            )
+            
+        except ApiException as e:
+            logger.error(f"Failed to delete Challenge: {challenge_name}")
+            logger.error(f"Kubernetes API error: {e.reason}", e.status)
+            raise UserChallengeRequestError(
+                f"Kubernetes API error: {e.reason}",
+                e.status
+            ) from e
  

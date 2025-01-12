@@ -37,3 +37,30 @@ def create_challenge():
         return jsonify({'error': 'Failed to create challenge'}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@challenge_bp.route('/delete', methods=['POST'])    
+def delete_userchallenges():
+    try:
+        """
+        사용자의 모든 챌린지 삭제 
+        """
+        # Challenge 관련 정보 가져오기 
+        # TODO(-) : Session을 활용한 사용자 정보 가져오기 
+        username = "test" # 테스트용 사용자 이름
+        res = request.get_json()
+        if not res:
+           return jsonify({'error': 'No data provided'}), 400
+
+        # Get Challenge_id
+        if 'challenge_id' not in res:
+            return jsonify({'error': 'No challenge_id provided'}), 400
+        challenge_id = res['challenge_id']
+        
+        # 사용자의 모든 챌린지 삭제 
+        client = K8sClient()
+        client.delete_userchallenge(username, challenge_id)
+        
+        return jsonify({'message' : '챌린지가 정상적으로 삭제되었습니다.'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
