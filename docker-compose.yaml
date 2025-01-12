@@ -78,11 +78,11 @@ services:
   app:
     image: hexactf/challenge-api:latest
     container_name: challenge_app
-    network_mode: "host"
+    network_mode: "host" # Using host network mode
     environment:
       - FLASK_ENV=development
       # Database
-      - DB_HOST=localhost
+      - DB_HOST=127.0.0.1 # Changed to localhost since using host network
       - DB_PORT=3306
       - DB_NAME=challenge_db
       - DB_USER=challenge_user
@@ -92,13 +92,15 @@ services:
       # Security
       - SECRET_KEY=your-super-secret-key-here
       # Kafka
-      - KAFKA_BOOTSTRAP_SERVERS=localhost:9093
+      - KAFKA_BOOTSTRAP_SERVERS=127.0.0.1:9093 # Changed to localhost port
       - KAFKA_TOPIC=challenge-status
       - KAFKA_GROUP_ID=challenge-consumer-group
+      - KUBECONFIG=/root/.kube/config
+    volumes:
+      - ${HOME}/.kube/config:/root/.kube/config:ro
     depends_on:
       - mariadb
       - kafka
     restart: unless-stopped
-
 volumes:
   mariadb_data:

@@ -20,6 +20,6 @@ COPY . .
 
 ENV MARIADB_CONFIG=/usr/bin/mariadb_config
 
-EXPOSE 5000
+EXPOSE 5001
 
 CMD ["python", "app.py"]

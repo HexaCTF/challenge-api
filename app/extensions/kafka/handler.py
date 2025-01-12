@@ -45,29 +45,18 @@ class MessageHandler:
             message: Kafka message
         """
         try:
-            username, problem_id, new_status, _ = MessageHandler.validate_message(message)
+            username, challenge_id, new_status, _ = MessageHandler.validate_message(message)
             
             # Create repository with current session
             repo = UserChallengesRepository()
             
-            challenge_name = f"{username}_{problem_id}"
+            challenge_name = challenge_name = f"challenge-{challenge_id}-{username}"
             
             challenge = repo.get_by_user_challenge_name(challenge_name)
             
-            if not challenge and new_status == "Creating":
-                challenge = repo.create(
-                    username=username,
-                    C_idx=int(problem_id),
-                    userChallengeName=challenge_name,
-                    port=0,  # Initial port value
-                    status=new_status
-                )
-                if not challenge:
-                    raise ValueError(f"Failed to create challenge: {challenge_name}")
-            else:
-                success = repo.update_status(challenge, new_status)
-                if not success:
-                    raise ValueError(f"Failed to update challenge status: {challenge_name}")
+            success = repo.update_status(challenge, new_status)
+            if not success:
+                raise ValueError(f"Failed to update challenge status: {challenge_name}")
         
         except ValueError as e:
             logger.warning(f"Invalid message format: {str(e)}")
