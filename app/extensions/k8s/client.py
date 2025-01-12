@@ -33,6 +33,9 @@ class K8sClient:
         return: endpoint(NodePort) 
         """
         try:
+            
+            user_challenge_repo = UserChallengesRepository()
+            
             # Challenge definition 조회
             challenge_definition = ChallengeRepository.get_challenge_name(challenge_id)
             if not challenge_definition:
@@ -51,9 +54,9 @@ class K8sClient:
                     raise UserChallengeRequestError(f"Namespace not found: {namespace}")
             
             # Database에 UserChallenge 생성 
-            user_challenge = UserChallengesRepository.get_by_user_challenge_name(challenge_name)
+            user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
             if not user_challenge:
-                user_challenge = UserChallengesRepository.create(username, challenge_id, challenge_name, 0)
+                user_challenge = user_challenge_repo.create(username, challenge_id, challenge_name, 0)
 
             # Challenge manifest 생성
             challenge_manifest = {
@@ -104,7 +107,7 @@ class K8sClient:
             
             
             if endpoint:
-                success = UserChallengesRepository.update_port(user_challenge, int(endpoint))
+                success = user_challenge_repo.update_port(user_challenge, int(endpoint))
                 if not success:
                     raise DBUpdateError(f"Failed to update UserChallenge with NodePort: {endpoint}")
 
