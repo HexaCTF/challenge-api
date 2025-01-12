@@ -9,8 +9,8 @@ from app.extensions.db.models import Challenges, UserChallenges, current_time_ks
 logger = logging.getLogger(__name__)
 
 class UserChallengesRepository:
-        
-    def create(self, username: str, C_idx: int, userChallengeName: str, 
+    @staticmethod
+    def create(username: str, C_idx: int, userChallengeName: str, 
               port: int, status: str = 'None') -> Optional[UserChallenges]:
        """새로운 사용자 챌린지 생성"""
        
@@ -29,13 +29,14 @@ class UserChallengesRepository:
            logger.error(f"Error creating challenge: {e}")
            db.session.rollback()
            return None
-
-    def get_by_user_challenge_name(self, userChallengeName: str) -> Optional[UserChallenges]:
+    @staticmethod
+    def get_by_user_challenge_name( userChallengeName: str) -> Optional[UserChallenges]:
        """챌린지 이름으로 조회"""
 
        return UserChallenges.query.filter_by(userChallengeName=userChallengeName).first()
 
-    def update_status(self, challenge: UserChallenges, new_status: str) -> bool:
+    @staticmethod
+    def update_status(challenge: UserChallenges, new_status: str) -> bool:
        """챌린지 상태 업데이트"""
        try:
            challenge.status = new_status
@@ -46,10 +47,9 @@ class UserChallengesRepository:
            db.session.rollback()
            return False
 
-    
-    def update_port(self, challenge: UserChallenges, port: int) -> bool:
+    @staticmethod
+    def update_port(challenge: UserChallenges, port: int) -> bool:
         """챌린지 포트 업데이트"""
-        
         
         try:
             challenge.port = port

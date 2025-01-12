@@ -49,7 +49,11 @@ class K8sClient:
             except ApiException as e:
                 if e.status == 404:
                     raise UserChallengeRequestError(f"Namespace not found: {namespace}")
-                
+            
+            # Database에 UserChallenge 생성 
+            user_challenge = UserChallengesRepository.get_by_user_challenge_name(challenge_name)
+            if not user_challenge:
+                user_challenge = UserChallengesRepository.create(username, challenge_id, challenge_name, 0)
 
             # Challenge manifest 생성
             challenge_manifest = {
@@ -75,11 +79,32 @@ class K8sClient:
                 plural="challenges",
                 body=challenge_manifest
             )
+            logger.info(f"Created Challenge: {challenge}")
 
-            endpoint = challenge['status']['endpoint']
-            # NodePort update
+            # status 값 가져오기
+            status = challenge.get('status', {})
+            endpoint = status.get('endpoint')
+            logger.info(f"Challenge Status: {status}")
+            logger.info(f"Challenge Endpoint: {endpoint}")
+
+            # status가 아직 설정되지 않았을 수 있으므로, 필요한 경우 다시 조회
+            if not status:
+                time.sleep(3)  
+                challenge = self.custom_api.get_namespaced_custom_object(
+                    group="apps.hexactf.io",
+                    version="v1alpha1",
+                    namespace=namespace,
+                    plural="challenges",
+                    name=challenge['metadata']['name']
+                )
+                status = challenge.get('status', {})
+                endpoint = status.get('endpoint')
+                logger.info(f"Updated Challenge Status: {status}")
+                logger.info(f"Updated Challenge Endpoint: {endpoint}")
+            
+            
             if endpoint:
-                success = UserChallengesRepository.update_port(challenge_name, endpoint)
+                success = UserChallengesRepository.update_port(user_challenge, int(endpoint))
                 if not success:
                     raise DBUpdateError(f"Failed to update UserChallenge with NodePort: {endpoint}")
 
