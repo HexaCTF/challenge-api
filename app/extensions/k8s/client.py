@@ -65,7 +65,7 @@ class K8sClient:
                 "metadata": {
                     "name": challenge_name,
                     "labels": {
-                        "apps.hexactf.io/problemId": str(challenge_id),
+                        "apps.hexactf.io/challengeId": str(challenge_id),
                         "apps.hexactf.io/user": username
                     }
                 },
