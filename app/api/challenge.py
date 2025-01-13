@@ -11,7 +11,7 @@ challenge_bp = Blueprint('challenge', __name__)
 # *TEST : Challenge 생성 서버의 테스트 URL  
 GLOBAL_URL = 'http://127.0.0.1'
 
-@challenge_bp.route('/', methods=['POST'])
+@challenge_bp.route('', methods=['POST'])
 def create_challenge():
     """사용자 챌린지 생성"""
     try:        
