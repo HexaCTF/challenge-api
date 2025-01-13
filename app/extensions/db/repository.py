@@ -56,6 +56,9 @@ class UserChallengesRepository:
             self.session.rollback()
             return False
 
+    def is_running(self, challenge: UserChallenges) -> bool:
+        """챌린지 실행 여부 확인"""
+        return challenge.status == 'Running'
 
 class ChallengeRepository:
     @staticmethod

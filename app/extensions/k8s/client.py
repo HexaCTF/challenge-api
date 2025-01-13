@@ -76,7 +76,11 @@ class K8sClient:
             user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
             if not user_challenge:
                 user_challenge = user_challenge_repo.create(username, challenge_id, challenge_name, 0)
-
+            
+            # 이미 실행 중인 Challenge가 있으면 데이터베이스에 저장된 포트 번호 반환
+            if user_challenge.status == 'Running':
+                return user_challenge.port
+            
             # Challenge manifest 생성
             challenge_manifest = {
                 "apiVersion": "apps.hexactf.io/v1alpha1",
