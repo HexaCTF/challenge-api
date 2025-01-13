@@ -1,8 +1,11 @@
 import datetime
+import logging
 from typing import Any, Dict
 from kafka import KafkaConsumer
 import json
-from app.extensions.kafka.exceptions import ConsumerException
+from app.exceptions.kafka import QueueProcessingError
+
+logger = logging.getLogger(__name__)
 
 class StatusMessage:
    """상태 메시지를 표현하는 클래스"""
@@ -61,7 +64,8 @@ class KafkaEventConsumer:
                    **self.config.consumer_config
                )
            except Exception as e:
-               raise ConsumerException(f"Failed to create consumer: {str(e)}")
+               logger.error(f"Failed to create consumer: {e}")
+               raise QueueProcessingError() from e
        return self._consumer
 
    def consume_events(self, callback):
@@ -80,19 +84,22 @@ class KafkaEventConsumer:
                    
                except json.JSONDecodeError as e:
                    # JSON 디코딩 오류 처리
+                   logger.error(f"Error decoding message: {e}")
                    print(f"Error decoding message: {e}")
                    continue
                except KeyError as e:
                    # 필수 필드 누락 오류 처리
+                   logger.error(f"Missing required field in message: {e}")
                    print(f"Missing required field in message: {e}")
                    continue
                except Exception as e:
                    # 기타 예외 처리
+                   logger.error(f"Error processing message: {e}")
                    print(f"Error processing message: {e}")
                    continue
                
        except Exception as e:
-           raise ConsumerException(f"Failed to consume events: {str(e)}")
+           raise QueueProcessingError() from e
 
    def close(self):
        """Kafka 소비자 연결 종료"""
