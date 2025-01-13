@@ -3,6 +3,7 @@ import threading
 
 from app.api.challenge import challenge_bp
 from app.config import Config
+from app.exceptions.handlers import register_error_handler
 from app.extensions.kafka.handler import MessageHandler
 from app.extensions_manager import kafka_consumer, db
 
@@ -22,6 +23,7 @@ def create_app(config_class=Config):
     # Extension 초기화 
     kafka_consumer.init_app(app)
     db.init_app(app)
+    register_error_handler(app)
     
     with app.app_context():
         db.create_all()

@@ -4,10 +4,9 @@ from kubernetes import client, config
 
 import logging
 
-from app.extensions.db.exceptions import DBUpdateError
+from app.exceptions.challenge import ChallengeNotFound
+from app.exceptions.userchallenge import UserChallengeCreationError, UserChallengeDeletionError
 from app.extensions.db.repository import ChallengeRepository, UserChallengesRepository
-from app.extensions.k8s.exceptions import ChallengeConflictError, UserChallengeRequestError
-from app.utils.exceptions import ApiException
 
 
 MAX_RETRIES = 3
@@ -16,6 +15,12 @@ SLEEP_INTERVAL = 2
 logger = logging.getLogger(__name__)
 
 class K8sClient:
+    """
+    Kubernetes Custom Resource 관리를 위한 클라이언트 클래스
+    
+    Challenge Custom Resource를 생성, 삭제하고 상태를 관리합니다.
+    클러스터 내부 또는 외부에서 실행될 수 있도록 설정을 자동으로 로드합니다.
+    """
     def __init__(self):
         try:
             config.load_incluster_config()
@@ -28,9 +33,20 @@ class K8sClient:
     
     def create_challenge_resource(self, challenge_id, username, namespace="default") -> int:
         """
-        Challenge CR를 생성한 후 NodePort를 확인한다.
+        Challenge Custom Resource를 생성하고 NodePort를 반환합니다.
         
-        return: endpoint(NodePort) 
+        Args:
+            challenge_id (str): 생성할 Challenge의 ID
+            username (str): Challenge를 생성하는 사용자 이름
+            namespace (str): Challenge를 생성할 네임스페이스 (기본값: "default")
+            
+        Returns:
+            int: 할당된 NodePort 번호
+            
+        Raises:
+            ChallengeNotFound: Challenge ID에 해당하는 Challenge가 없을 때
+            ChallengeCreationError: Challenge Custom Resource 생성에 실패했을 때
+
         """
         try:
             
@@ -39,19 +55,22 @@ class K8sClient:
             # Challenge definition 조회
             challenge_definition = ChallengeRepository.get_challenge_name(challenge_id)
             if not challenge_definition:
-                raise UserChallengeRequestError(f"Challenge definition not found for ID: {challenge_id}")
+                logger.error(f"Challenge definition not found for ID: {challenge_id}")
+                raise ChallengeNotFound()
 
             # Challenge name 생성 및 검증
             challenge_name = f"challenge-{challenge_id}-{username}"
             if not self._is_valid_k8s_name(challenge_name):
-                raise UserChallengeRequestError(f"Invalid challenge name: {challenge_name}")
+                logger.error(f"Invalid challenge name: {challenge_name}")
+                raise UserChallengeCreationError()
 
             # Namespace 존재 여부 확인
             try:
                 self.core_api.read_namespace(namespace)
-            except ApiException as e:
+            except Exception as e:
                 if e.status == 404:
-                    raise UserChallengeRequestError(f"Namespace not found: {namespace}")
+                    logger.error(f"Namespace not found: {namespace}")
+                    raise UserChallengeCreationError()
             
             # Database에 UserChallenge 생성 
             user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
@@ -82,13 +101,10 @@ class K8sClient:
                 plural="challenges",
                 body=challenge_manifest
             )
-            logger.info(f"Created Challenge: {challenge}")
 
             # status 값 가져오기
             status = challenge.get('status', {})
             endpoint = status.get('endpoint')
-            logger.info(f"Challenge Status: {status}")
-            logger.info(f"Challenge Endpoint: {endpoint}")
 
             # status가 아직 설정되지 않았을 수 있으므로, 필요한 경우 다시 조회
             if not status:
@@ -102,26 +118,20 @@ class K8sClient:
                 )
                 status = challenge.get('status', {})
                 endpoint = status.get('endpoint')
-                logger.info(f"Updated Challenge Status: {status}")
-                logger.info(f"Updated Challenge Endpoint: {endpoint}")
-            
             
             if endpoint:
                 success = user_challenge_repo.update_port(user_challenge, int(endpoint))
                 if not success:
-                    raise DBUpdateError(f"Failed to update UserChallenge with NodePort: {endpoint}")
+                    logger.error(f"Failed to update UserChallenge with NodePort: {endpoint}")
+                    raise UserChallengeCreationError()
 
+            logger.info(f"Challenge created: {challenge_name}, NodePort: {endpoint}")
+            
             return endpoint
-        except ApiException as e:
-            if e.status == 409:
-                raise ChallengeConflictError(
-                    f"Challenge already exists: {challenge_name}"
-                )
-            else:
-                raise UserChallengeRequestError(
-                    f"Kubernetes API error: {e.reason}",
-                    e.status
-                )
+        except Exception as e:
+            logger.error(f"Failed to create Challenge: {challenge_name}")
+            logger.error(f"Kubernetes API error: {e.reason}", e.status)
+            raise UserChallengeCreationError() from e
         
 
     def _is_valid_k8s_name(self, name: str) -> bool:
@@ -139,14 +149,23 @@ class K8sClient:
     
     def delete_userchallenge(self, username, challenge_id, namespace="default"):
         """
-        사용자 챌린지 삭제
+        Challenge Custom Resource를 삭제합니다.
+        
+        Args:
+            username (str): Challenge를 생성한 사용자 이름
+            challenge_id (str): 삭제할 Challenge의 ID
+            namespace (str): Challenge가 생성된 네임스페이스 (기본값: "default")
+            
+        Raises:
+            UserChallengeDeletionError: Challenge 삭제에 실패했을 때
         """
         
         challenge_name = f"challenge-{challenge_id}-{username}"
         user_challenge_repo = UserChallengesRepository()
         user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
         if not user_challenge:
-            raise UserChallengeRequestError(f"UserChallenge not found: {challenge_name}")
+            logger.error(f"Deletion : UserChallenge not found: {challenge_name}")
+            raise UserChallengeDeletionError()
         
         try:
             self.custom_api.delete_namespaced_custom_object(
@@ -156,12 +175,8 @@ class K8sClient:
                 plural="challenges",
                 name=challenge_name
             )
-            
-        except ApiException as e:
+        except Exception as e:
             logger.error(f"Failed to delete Challenge: {challenge_name}")
             logger.error(f"Kubernetes API error: {e.reason}", e.status)
-            raise UserChallengeRequestError(
-                f"Kubernetes API error: {e.reason}",
-                e.status
-            ) from e
+            raise UserChallengeDeletionError() from e
  

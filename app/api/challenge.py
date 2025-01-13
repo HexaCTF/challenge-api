@@ -1,5 +1,9 @@
+from json import JSONDecodeError
+from logging import log
 from flask import Blueprint, jsonify, request
 
+from app.exceptions.api import InvalidRequest
+from app.exceptions.userchallenge import UserChallengeCreationError, UserChallengeDeletionError
 from app.extensions.k8s.client import K8sClient
 
 challenge_bp = Blueprint('challenge', __name__)
@@ -22,10 +26,10 @@ def create_challenge():
         username = "test" # 테스트용 사용자 이름
         res = request.get_json()
         if not res:
-           return jsonify({'error': 'No data provided'}), 400
+           raise InvalidRequest()
 
         if 'challenge_id' not in res:
-            return jsonify({'error': 'No challenge_id provided'}), 400
+            raise InvalidRequest()
         
         challenge_id = res['challenge_id']
         
@@ -34,9 +38,10 @@ def create_challenge():
         endpoint = client.create_challenge_resource(challenge_id, username)
         if endpoint:
             return jsonify({'data' : {'url' : GLOBAL_URL, 'port': endpoint}}), 200
-        return jsonify({'error': 'Failed to create challenge'}), 500
+        return UserChallengeCreationError()
+    
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise UserChallengeCreationError() from e 
 
 @challenge_bp.route('/delete', methods=['POST'])    
 def delete_userchallenges():
@@ -49,11 +54,13 @@ def delete_userchallenges():
         username = "test" # 테스트용 사용자 이름
         res = request.get_json()
         if not res:
-           return jsonify({'error': 'No data provided'}), 400
+            log.error("No data provided")
+            raise UserChallengeDeletionError()
 
         # Get Challenge_id
         if 'challenge_id' not in res:
-            return jsonify({'error': 'No challenge_id provided'}), 400
+            log.error("No challenge_id provided")
+            raise UserChallengeDeletionError()
         challenge_id = res['challenge_id']
         
         # 사용자의 모든 챌린지 삭제 
@@ -61,6 +68,8 @@ def delete_userchallenges():
         client.delete_userchallenge(username, challenge_id)
         
         return jsonify({'message' : '챌린지가 정상적으로 삭제되었습니다.'}), 200
-
+    except JSONDecodeError as e:
+        log.error("Invalid request format")
+        raise InvalidRequest() from e
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise UserChallengeDeletionError() from e

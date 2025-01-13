@@ -1,5 +1,6 @@
 import logging
 from typing import Any, Dict
+from app.exceptions.kafka import QueueProcessingError
 from app.extensions.db.repository import UserChallengesRepository
 
 logger = logging.getLogger(__name__)
@@ -30,10 +31,12 @@ class MessageHandler:
             timestamp = message['timestamp']
 
         if not all([username, problem_id, new_status, timestamp]):
-            raise ValueError(f"Missing required fields in message: {message}")
+            logger.error(f"Missing required fields in message: {message}")
+            raise QueueProcessingError()
 
         if new_status not in MessageHandler.VALID_STATUSES:
-            raise ValueError(f"Invalid status type: {new_status}")
+            logger.error(f"Invalid status type: {new_status}")
+            raise QueueProcessingError()
 
         return username, problem_id, new_status, timestamp
 
@@ -56,11 +59,13 @@ class MessageHandler:
             
             success = repo.update_status(challenge, new_status)
             if not success:
-                raise ValueError(f"Failed to update challenge status: {challenge_name}")
+                logger.error(f"Failed to update challenge status: {challenge_name}")
+                raise QueueProcessingError()
         
         except ValueError as e:
             logger.warning(f"Invalid message format: {str(e)}")
+            raise QueueProcessingError() from e 
         except Exception as e:
             logger.error(f"Error handling message: {str(e)}", exc_info=True)
             # Optionally re-raise if you want the error to propagate
-            raise
+            raise QueueProcessingError() from e

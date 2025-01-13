@@ -3,7 +3,7 @@ import os
 
 class Config:
     """Flask 애플리케이션 설정"""
-    
+    PROPAGATE_EXCEPTIONS = True  
     # Database configuration
     DB_HOST = os.getenv('DB_HOST', 'mariadb')
     DB_PORT = os.getenv('DB_PORT', '3306')

@@ -3,7 +3,7 @@ import logging
 from typing import List, Optional
 from sqlalchemy.exc import SQLAlchemyError
 from app.extensions_manager import db
-from app.extensions.db.models import Challenges, UserChallenges, current_time_kst
+from app.extensions.db.models import Challenges, UserChallenges
 
 logger = logging.getLogger(__name__)
 
