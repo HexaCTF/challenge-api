@@ -8,6 +8,7 @@ class QueueException(CustomBaseException):
         
 
 class QueueConnectionError(QueueException):
+    """Queue 연결 실패시 발생하는 예외"""
     def __init__(self):
         super().__init__(
             error_type=ApiErrorTypes.SERVICE_UNAVAILABLE,
@@ -16,6 +17,7 @@ class QueueConnectionError(QueueException):
         )
 
 class QueueProcessingError(QueueException):
+    """Queue 메시지 처리 실패시 발생하는 예외"""
     def __init__(self):
         super().__init__(
             error_type=ApiErrorTypes.PROCESSING_ERROR,
@@ -24,6 +26,7 @@ class QueueProcessingError(QueueException):
         )
 
 class QueueTimeoutError(QueueException):
+    """Queue 메시지 처리 시간 초과시 발생하는 예외"""
     def __init__(self):
         super().__init__(
             error_type=ApiErrorTypes.REQUEST_TIMEOUT,
@@ -32,6 +35,7 @@ class QueueTimeoutError(QueueException):
         )
 
 class QueueValidationError(QueueException):
+    """Queue 메시지 유효성 검사 실패시 발생하는 예외"""
     def __init__(self):
         super().__init__(
             error_type=ApiErrorTypes.INVALID_REQUEST,

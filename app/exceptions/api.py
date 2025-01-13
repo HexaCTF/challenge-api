@@ -16,3 +16,12 @@ class InvalidRequest(APIException):
             message="Invalid request format",
             status_code=400
         )
+
+class InternalServerError(APIException):
+    """서버 내부 오류 예외"""
+    def __init__(self):
+        super().__init(
+            error_type=ApiErrorTypes.INTERNAL_SERVER_ERROR,
+            message="An unexpected error occurred",
+            status_code=500
+        )

@@ -76,10 +76,10 @@ class K8sClient:
             user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
             if not user_challenge:
                 user_challenge = user_challenge_repo.create(username, challenge_id, challenge_name, 0)
-            
-            # 이미 실행 중인 Challenge가 있으면 데이터베이스에 저장된 포트 번호 반환
-            if user_challenge.status == 'Running':
-                return user_challenge.port
+            else:
+                # 이미 실행 중인 Challenge가 있으면 데이터베이스에 저장된 포트 번호 반환
+                if user_challenge.status == 'Running':
+                    return user_challenge.port
             
             # Challenge manifest 생성
             challenge_manifest = {
@@ -123,6 +123,7 @@ class K8sClient:
                 status = challenge.get('status', {})
                 endpoint = status.get('endpoint')
             
+            # NodePort 업데이트
             if endpoint:
                 success = user_challenge_repo.update_port(user_challenge, int(endpoint))
                 if not success:
@@ -141,6 +142,12 @@ class K8sClient:
     def _is_valid_k8s_name(self, name: str) -> bool:
         """
         Kubernetes 리소스 이름 유효성 검사
+        
+        Args:
+            name (str): 검사할 이름
+            
+        Returns:
+            bool: 유효한 이름인지 여부
         """
         # Kubernetes naming convention 검사
         if not name or len(name) > 253:
@@ -164,6 +171,7 @@ class K8sClient:
             UserChallengeDeletionError: Challenge 삭제에 실패했을 때
         """
         
+        # UserChallenge 조회 
         challenge_name = f"challenge-{challenge_id}-{username}"
         user_challenge_repo = UserChallengesRepository()
         user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
@@ -171,6 +179,7 @@ class K8sClient:
             logger.error(f"Deletion : UserChallenge not found: {challenge_name}")
             raise UserChallengeDeletionError()
         
+        # 사용자 챌린지(컨테이너) 삭제 
         try:
             self.custom_api.delete_namespaced_custom_object(
                 group="apps.hexactf.io",

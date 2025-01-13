@@ -11,19 +11,11 @@ challenge_bp = Blueprint('challenge', __name__)
 # *TEST : Challenge 생성 서버의 테스트 URL  
 GLOBAL_URL = 'http://127.0.0.1'
 
-
 @challenge_bp.route('/', methods=['POST'])
 def create_challenge():
-    try:
-        """
-        Challenge 필수사항
-        - Challenge 정보 데이터베이스에 저장 
-        - Challenge의 상태가 실행중이라면 실행중인 컨테이너의 정보(URL, 포트번호 등)을 반환
-        """
-        
+    """사용자 챌린지 생성"""
+    try:        
         # Challenge 관련 정보 가져오기 
-        # TODO(-) : Session을 활용한 사용자 정보 가져오기 
-        username = "test" # 테스트용 사용자 이름
         res = request.get_json()
         if not res:
            raise InvalidRequest()
@@ -33,6 +25,12 @@ def create_challenge():
         
         challenge_id = res['challenge_id']
         
+        # TODO(-) : Session을 활용한 사용자 정보 가져오기 
+        if 'username' not in res:
+            log.error("No username provided")
+            raise InvalidRequest()
+        username = res['username']
+
         # 챌린지 생성 
         client = K8sClient()
         endpoint = client.create_challenge_resource(challenge_id, username)
@@ -47,21 +45,24 @@ def create_challenge():
 def delete_userchallenges():
     try:
         """
-        사용자의 모든 챌린지 삭제 
+        사용자 챌린지 삭제 
         """
         # Challenge 관련 정보 가져오기 
-        # TODO(-) : Session을 활용한 사용자 정보 가져오기 
-        username = "test" # 테스트용 사용자 이름
         res = request.get_json()
         if not res:
             log.error("No data provided")
             raise UserChallengeDeletionError()
 
-        # Get Challenge_id
         if 'challenge_id' not in res:
             log.error("No challenge_id provided")
-            raise UserChallengeDeletionError()
+            raise InvalidRequest()
         challenge_id = res['challenge_id']
+        
+        # TODO(-) : Session을 활용한 사용자 정보 가져오기 
+        if 'username' not in res:
+            log.error("No username provided")
+            raise InvalidRequest()
+        username = res['username']
         
         # 사용자의 모든 챌린지 삭제 
         client = K8sClient()

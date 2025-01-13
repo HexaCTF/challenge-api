@@ -4,13 +4,13 @@ from typing import Optional, Callable
 from flask import Flask, current_app
 from flask_sqlalchemy import SQLAlchemy
 from app.extensions.db.config import MariaDBConfig
-# from app.extensions.db.exceptions import InitializationError, SessionError
 from app.extensions.kafka import KafkaConfig, KafkaEventConsumer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class FlaskKafkaConsumer:
+    """Flask 애플리케이션에서 Kafka 메시지 소비를 관리하는 클래스"""
     def __init__(self):
         self.consumer: Optional[KafkaEventConsumer] = None
         self._consumer_thread: Optional[Thread] = None
@@ -35,9 +35,6 @@ class FlaskKafkaConsumer:
             if self._consumer_thread is not None:
                 logger.warning("Consumer thread already running")
                 return
-
-            # if not self.consumer:
-            #     raise InitializationError("Kafka consumer not initialized")
 
             self._running.set()
             self._consumer_thread = Thread(
@@ -68,9 +65,6 @@ class FlaskKafkaConsumer:
 
     def _consume_messages(self, message_handler: Callable) -> None:
         """Thread-safe한 메시지 소비 루프"""
-        # if not self.app:
-        #     raise InitializationError("Flask app not initialized")
-
         with self.app.app_context():
             try:
                 while self._running.is_set():
