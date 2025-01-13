@@ -64,7 +64,7 @@ def delete_userchallenges():
             raise InvalidRequest()
         username = res['username']
         
-        # 사용자의 모든 챌린지 삭제 
+        # 사용자 챌린지 삭제 
         client = K8sClient()
         client.delete_userchallenge(username, challenge_id)
         
