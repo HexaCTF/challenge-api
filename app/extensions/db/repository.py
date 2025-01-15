@@ -107,6 +107,20 @@ class UserChallengesRepository:
         """
         return challenge.status == 'Running'
 
+    def get_status(self, challenge_id, username) -> Optional[str]:
+        """
+        챌린지 상태 조회
+        
+        Args:
+            challenge_id (int): 챌린지 아이디
+            username (str): 사용자 이름
+        
+        Returns:
+            str: 챌린지 상태
+        """
+        challenge = UserChallenges.query.filter_by(C_idx=challenge_id, username=username).first()
+        return challenge.status if challenge else None
+
 class ChallengeRepository:
     @staticmethod
     def get_challenge_name(challenge_id: int) -> Optional[str]:
