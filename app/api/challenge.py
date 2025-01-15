@@ -9,9 +9,6 @@ from app.extensions.k8s.client import K8sClient
 
 challenge_bp = Blueprint('challenge', __name__)
 
-# *TEST : Challenge 생성 서버의 테스트 URL  
-GLOBAL_URL = 'http://127.0.0.1'
-
 @challenge_bp.route('', methods=['POST'])
 def create_challenge():
     """사용자 챌린지 생성"""
@@ -35,7 +32,7 @@ def create_challenge():
         client = K8sClient()
         endpoint = client.create_challenge_resource(challenge_id, username)
         if endpoint:
-            return jsonify({'data' : {'url' : GLOBAL_URL, 'port': endpoint}}), 200
+            return jsonify({'data' : {'port': endpoint}}), 200
         return UserChallengeCreationError()
     
     except Exception as e:
