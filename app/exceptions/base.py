@@ -14,7 +14,10 @@ class CustomBaseException(Exception):
                 - 예외 발생시 handler(handler.py)에서 에러를 반환(response)하도록 구현되어 있습니다.
      """
      def __init__(self, error_type: ApiErrorTypes, message: str, status_code: int = 500):
+        super().__init__(message)
         self.error_type = error_type or ApiErrorTypes.UNEXPECTED_ERROR
         self.message = message or "An unexpected error occurred"
         self.status_code = status_code
-        super().__init__(message)
+        
+           
+        
