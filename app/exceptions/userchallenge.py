@@ -33,3 +33,12 @@ class UserChallengeDeletionError(UserChallengeException):
             message="Unable to delete challenge. Please try again later",
             status_code=500
         )
+
+class UserChallengeNotFoundError(UserChallengeException):
+    """UserChallenge 조회 실패시 발생하는 예외"""
+    def __init__(self):
+        super().__init__(
+            error_type=ApiErrorTypes.CHALLENGE_NOT_FOUND,
+            message="Challenge not found",
+            status_code=404
+       )
