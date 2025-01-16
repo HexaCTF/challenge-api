@@ -19,9 +19,10 @@ class FlaskLokiLogger:
         handler = LokiHandler(
             url=self.app.config['LOKI_URL'],
             tags=self.app.config['LOG_TAGS'],
-            version="1"
+            version="1",
+            json_fields= True
         )
-        handler.setFormatter(JSONFormatter())
+        
         logger = logging.getLogger(self.app.config['APP_NAME'])
         logger.setLevel(self.app.config['LOG_LEVEL'])
         logger.addHandler(handler)
@@ -77,35 +78,3 @@ class FlaskLokiLogger:
                 "attributes": context
             }
         )
-
-
-class JSONFormatter(logging.Formatter):
-    def format(self, record):
-        # 기본 로그 데이터
-        log_data = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "level": record.levelname,
-            "message": record.msg,
-            "logger": record.name
-        }
-
-        # extra 데이터가 있으면 추가
-        if hasattr(record, 'extra'):
-            # extra가 이미 dict인지 확인
-            extra = record.extra
-            if isinstance(extra, str):
-                try:
-                    extra = json.loads(extra)
-                except json.JSONDecodeError:
-                    pass
-            log_data.update(extra)
-
-        # 중복 JSON 인코딩 방지를 위한 체크
-        for key, value in log_data.items():
-            if isinstance(value, str):
-                try:
-                    log_data[key] = json.loads(value)
-                except json.JSONDecodeError:
-                    pass
-
-        return json.dumps(log_data, ensure_ascii=False)
