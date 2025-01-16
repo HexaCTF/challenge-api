@@ -10,8 +10,9 @@ class Config:
     - SQLAlchemy ORM 설정
     - 보안 관련 설정
     - Kafka 메시징 설정
+    - Loki 로깅 설정
     """
-
+    
     # =========================================================================
     # Flask 기본 설정
     # =========================================================================
@@ -67,3 +68,27 @@ class Config:
         'KAFKA_GROUP_ID', 
         'challenge-consumer-group'
     )  # 컨슈머 그룹 ID
+
+    # =========================================================================
+    # Loki 로깅 설정
+    # =========================================================================
+    # 애플리케이션 식별자
+    APP_NAME = os.getenv('APP_NAME', 'challenge-service')
+
+    # Loki 서버 설정
+    LOKI_PROTOCOL = os.getenv('LOKI_PROTOCOL', 'http')
+    LOKI_HOST = os.getenv('LOKI_HOST', '127.0.0.1')
+    LOKI_PORT = os.getenv('LOKI_PORT', '3100')
+    LOKI_PATH = os.getenv('LOKI_PATH', '/loki/api/v1/push')
+    
+    # Loki URL 구성
+    LOKI_URL = f"{LOKI_PROTOCOL}://{LOKI_HOST}:{LOKI_PORT}{LOKI_PATH}"
+
+    # 로그 레벨 설정
+    LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+
+    # 로그 태그 설정
+    LOG_TAGS = {
+        "application": APP_NAME,
+        "environment": os.getenv('ENVIRONMENT', 'development')
+    }

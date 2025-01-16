@@ -65,7 +65,7 @@ class KafkaEventConsumer:
                )
            except Exception as e:
                logger.error(f"Failed to create consumer: {e}")
-               raise QueueProcessingError() from e
+               raise QueueProcessingError(f"Failed to create consumer: {e}") from e
        return self._consumer
 
    def consume_events(self, callback):
@@ -85,21 +85,18 @@ class KafkaEventConsumer:
                except json.JSONDecodeError as e:
                    # JSON 디코딩 오류 처리
                    logger.error(f"Error decoding message: {e}")
-                   print(f"Error decoding message: {e}")
                    continue
                except KeyError as e:
                    # 필수 필드 누락 오류 처리
                    logger.error(f"Missing required field in message: {e}")
-                   print(f"Missing required field in message: {e}")
                    continue
                except Exception as e:
                    # 기타 예외 처리
                    logger.error(f"Error processing message: {e}")
-                   print(f"Error processing message: {e}")
                    continue
                
        except Exception as e:
-           raise QueueProcessingError() from e
+           raise QueueProcessingError(f"Kafka Error: {str(e)}") from e
 
    def close(self):
        """Kafka 소비자 연결 종료"""

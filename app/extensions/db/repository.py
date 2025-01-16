@@ -39,9 +39,8 @@ class UserChallengesRepository:
             self.session.commit()
             return challenge
         except SQLAlchemyError as e:
-            logger.error(f"Error creating challenge in db: {e}")
             self.session.rollback()
-            raise InternalServerError() from e
+            raise InternalServerError(f"Error creating challenge in db: {e}") from e
 
     def get_by_user_challenge_name(self, userChallengeName: str) -> Optional[UserChallenges]:
         """
@@ -93,9 +92,8 @@ class UserChallengesRepository:
             self.session.commit()
             return True
         except SQLAlchemyError as e:
-            logger.error(f"Error updating challenge port: {e}")
             self.session.rollback()
-            return False
+            raise InternalServerError(f"Error updating challenge port: {e}") from e
 
     def is_running(self, challenge: UserChallenges) -> bool:
         """

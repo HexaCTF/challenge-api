@@ -16,16 +16,15 @@ def create_challenge():
         # Challenge 관련 정보 가져오기 
         res = request.get_json()
         if not res:
-           raise InvalidRequest()
+           raise InvalidRequest("Request body is empty or not valid JSON")
 
         if 'challenge_id' not in res:
-            raise InvalidRequest()
+            raise InvalidRequest("Required field 'challenge_id' is missing in request")
         
         challenge_id = res['challenge_id']
         
         if 'username' not in res:
-            log.error("No username provided")
-            raise InvalidRequest()
+            raise InvalidRequest("Required field 'username' is missing in request")
         username = res['username']
 
         # 챌린지 생성 
@@ -33,10 +32,10 @@ def create_challenge():
         endpoint = client.create_challenge_resource(challenge_id, username)
         if endpoint:
             return jsonify({'data' : {'port': endpoint}}), 200
-        return UserChallengeCreationError()
+        return UserChallengeCreationError(f"Faile to create challenge {challenge_id} for user {username}")
     
     except Exception as e:
-        raise UserChallengeCreationError() from e 
+        raise UserChallengeCreationError(str(e)) from e 
 
 @challenge_bp.route('/delete', methods=['POST'])    
 def delete_userchallenges():
