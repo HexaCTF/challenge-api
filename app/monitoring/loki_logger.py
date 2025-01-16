@@ -91,6 +91,21 @@ class JSONFormatter(logging.Formatter):
 
         # extra 데이터가 있으면 추가
         if hasattr(record, 'extra'):
-            log_data.update(record.extra)
+            # extra가 이미 dict인지 확인
+            extra = record.extra
+            if isinstance(extra, str):
+                try:
+                    extra = json.loads(extra)
+                except json.JSONDecodeError:
+                    pass
+            log_data.update(extra)
 
-        return json.dumps(log_data)
+        # 중복 JSON 인코딩 방지를 위한 체크
+        for key, value in log_data.items():
+            if isinstance(value, str):
+                try:
+                    log_data[key] = json.loads(value)
+                except json.JSONDecodeError:
+                    pass
+
+        return json.dumps(log_data, ensure_ascii=False)
