@@ -50,31 +50,32 @@ class FlaskLokiLogger:
         if request.is_json:
             context["request_body"] = request.get_json()
 
+        # 평평한(flat) 구조로 변경
         self.logger.info(
             "HTTP Request",
             extra={
-                "tags": {"request_id": context["request_id"]},
-                "attributes": context
+                **context,  # context의 모든 필드를 최상위 레벨로
+                "request_id": context["request_id"]
             }
         )
 
     def log_error(self, error: CustomBaseException):
         """커스텀 예외 로깅"""
         context = self._get_request_context()
-        context.update({
+        
+        # 모든 필드를 최상위 레벨로 올림
+        log_data = {
             "error_type": error.error_type.value,
             "error_message": error.message,
             "status_code": error.status_code,
-            "error_msg": error.error_msg
-        })
-
+            "error_msg": error.error_msg,
+            "request_id": context["request_id"],
+            "path": context["path"],
+            "method": context["method"],
+            "timestamp": context["timestamp"]
+        }
+    
         self.logger.error(
             "Application Error",
-            extra={
-                "tags": {
-                    "error_type": error.error_type.value,
-                    "request_id": context["request_id"]
-                },
-                "attributes": context
-            }
+            extra=log_data  # 중첩 구조 제거
         )
