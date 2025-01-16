@@ -2,17 +2,15 @@ import time
 
 from kubernetes import client, config
 
-import logging
-
 from app.exceptions.challenge import ChallengeNotFound
 from app.exceptions.userchallenge import UserChallengeCreationError, UserChallengeDeletionError
 from app.extensions.db.repository import ChallengeRepository, UserChallengesRepository
+from app.monitoring.loki_logger import FlaskLokiLogger
 
 
 MAX_RETRIES = 3
 SLEEP_INTERVAL = 2
 
-logger = logging.getLogger(__name__)
 
 class K8sClient:
     """
@@ -21,7 +19,8 @@ class K8sClient:
     Challenge Custom Resource를 생성, 삭제하고 상태를 관리합니다.
     클러스터 내부 또는 외부에서 실행될 수 있도록 설정을 자동으로 로드합니다.
     """
-    def __init__(self):
+    def __init__(self, logger: FlaskLokiLogger):
+        self.logger =  logger
         try:
             config.load_incluster_config()
         except config.ConfigException:
@@ -55,22 +54,18 @@ class K8sClient:
             # Challenge definition 조회
             challenge_definition = ChallengeRepository.get_challenge_name(challenge_id)
             if not challenge_definition:
-                logger.error(f"Challenge definition not found for ID: {challenge_id}")
-                raise ChallengeNotFound()
+                raise ChallengeNotFound(f"Challenge definition not found for ID: {challenge_id}")
 
             # Challenge name 생성 및 검증
             challenge_name = f"challenge-{challenge_id}-{username}"
             if not self._is_valid_k8s_name(challenge_name):
-                logger.error(f"Invalid challenge name: {challenge_name}")
-                raise UserChallengeCreationError()
+                raise UserChallengeCreationError(f"Invalid challenge name: {challenge_name}")
 
             # Namespace 존재 여부 확인
             try:
                 self.core_api.read_namespace(namespace)
             except Exception as e:
-                if e.status == 404:
-                    logger.error(f"Namespace not found: {namespace}")
-                    raise UserChallengeCreationError()
+                raise UserChallengeCreationError(str(e))
             
             # Database에 UserChallenge 생성 
             user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
@@ -127,16 +122,19 @@ class K8sClient:
             if endpoint:
                 success = user_challenge_repo.update_port(user_challenge, int(endpoint))
                 if not success:
-                    logger.error(f"Failed to update UserChallenge with NodePort: {endpoint}")
-                    raise UserChallengeCreationError()
+                    raise UserChallengeCreationError(f"Failed to update UserChallenge with NodePort: {endpoint}")
 
-            logger.info(f"Challenge created: {challenge_name}, NodePort: {endpoint}")
-            
+            self.logger.log_info(
+                "Challenge created successfully",
+                challenge_name=challenge_name,
+                challenge_id=challenge_id,
+                username=username,
+                endpoint=endpoint,
+                namespace=namespace
+            )
             return endpoint
         except Exception as e:
-            logger.error(f"Failed to create Challenge: {challenge_name}")
-            logger.error(f"Kubernetes API error: {e.reason}", e.status)
-            raise UserChallengeCreationError() from e
+            raise UserChallengeCreationError(str(e)) from e
         
 
     def _is_valid_k8s_name(self, name: str) -> bool:
@@ -176,8 +174,7 @@ class K8sClient:
         user_challenge_repo = UserChallengesRepository()
         user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
         if not user_challenge:
-            logger.error(f"Deletion : UserChallenge not found: {challenge_name}")
-            raise UserChallengeDeletionError()
+            raise UserChallengeDeletionError(f"Deletion : UserChallenge not found: {challenge_name}")
         
         # 사용자 챌린지(컨테이너) 삭제 
         try:
@@ -188,8 +185,17 @@ class K8sClient:
                 plural="challenges",
                 name=challenge_name
             )
+            
+            self.logger.log_info(
+                "User challenge deleted successfully",
+                challenge_name=challenge_name,
+                challenge_id=challenge_id,
+                username=username,
+                namespace=namespace,
+                port=user_challenge.port,
+                status=user_challenge.status
+            )
+        
         except Exception as e:
-            logger.error(f"Failed to delete Challenge: {challenge_name}")
-            logger.error(f"Kubernetes API error: {e.reason}", e.status)
-            raise UserChallengeDeletionError() from e
+            raise UserChallengeDeletionError(str(e)) from e
  
