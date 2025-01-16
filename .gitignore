@@ -155,3 +155,8 @@ fabric.properties
 # End of https://www.toptal.com/developers/gitignore/api/pycharm
 
 .venv/
+
+loki/
+loki_data/
+loki_wal/
+prometheus/
