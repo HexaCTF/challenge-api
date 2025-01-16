@@ -1,3 +1,4 @@
+import os
 import time
 
 from kubernetes import client, config
@@ -19,8 +20,8 @@ class K8sClient:
     Challenge Custom Resource를 생성, 삭제하고 상태를 관리합니다.
     클러스터 내부 또는 외부에서 실행될 수 있도록 설정을 자동으로 로드합니다.
     """
-    def __init__(self, logger: FlaskLokiLogger):
-        self.logger =  logger
+    
+    def __init__(self):
         try:
             config.load_incluster_config()
         except config.ConfigException:
@@ -48,24 +49,23 @@ class K8sClient:
 
         """
         try:
-            
             user_challenge_repo = UserChallengesRepository()
             
             # Challenge definition 조회
             challenge_definition = ChallengeRepository.get_challenge_name(challenge_id)
             if not challenge_definition:
-                raise ChallengeNotFound(f"Challenge definition not found for ID: {challenge_id}")
+                raise ChallengeNotFound(error_msg=f"Challenge definition not found for ID: {challenge_id}")
 
             # Challenge name 생성 및 검증
             challenge_name = f"challenge-{challenge_id}-{username}"
             if not self._is_valid_k8s_name(challenge_name):
-                raise UserChallengeCreationError(f"Invalid challenge name: {challenge_name}")
+                raise UserChallengeCreationError(error_msg=f"Invalid challenge name: {challenge_name}")
 
             # Namespace 존재 여부 확인
             try:
                 self.core_api.read_namespace(namespace)
             except Exception as e:
-                raise UserChallengeCreationError(str(e))
+                raise UserChallengeCreationError(error_msg=str(e))
             
             # Database에 UserChallenge 생성 
             user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
@@ -122,19 +122,12 @@ class K8sClient:
             if endpoint:
                 success = user_challenge_repo.update_port(user_challenge, int(endpoint))
                 if not success:
-                    raise UserChallengeCreationError(f"Failed to update UserChallenge with NodePort: {endpoint}")
+                    raise UserChallengeCreationError(error_msg=f"Failed to update UserChallenge with NodePort: {endpoint}")
 
-            self.logger.log_info(
-                "Challenge created successfully",
-                challenge_name=challenge_name,
-                challenge_id=challenge_id,
-                username=username,
-                endpoint=endpoint,
-                namespace=namespace
-            )
+
             return endpoint
         except Exception as e:
-            raise UserChallengeCreationError(str(e)) from e
+            raise UserChallengeCreationError(error_msg=str(e)) from e
         
 
     def _is_valid_k8s_name(self, name: str) -> bool:
@@ -174,7 +167,7 @@ class K8sClient:
         user_challenge_repo = UserChallengesRepository()
         user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
         if not user_challenge:
-            raise UserChallengeDeletionError(f"Deletion : UserChallenge not found: {challenge_name}")
+            raise UserChallengeDeletionError(error_msg=f"Deletion : UserChallenge not found: {challenge_name}")
         
         # 사용자 챌린지(컨테이너) 삭제 
         try:
@@ -186,16 +179,6 @@ class K8sClient:
                 name=challenge_name
             )
             
-            self.logger.log_info(
-                "User challenge deleted successfully",
-                challenge_name=challenge_name,
-                challenge_id=challenge_id,
-                username=username,
-                namespace=namespace,
-                port=user_challenge.port,
-                status=user_challenge.status
-            )
-        
         except Exception as e:
-            raise UserChallengeDeletionError(str(e)) from e
+            raise UserChallengeDeletionError(error_msg=str(e)) from e
  

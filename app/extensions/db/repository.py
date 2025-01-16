@@ -6,7 +6,6 @@ from app.exceptions.api import InternalServerError
 from app.extensions_manager import db
 from app.extensions.db.models import Challenges, UserChallenges
 
-logger = logging.getLogger(__name__)
 
 class UserChallengesRepository:
     def __init__(self, session=None):
@@ -40,7 +39,7 @@ class UserChallengesRepository:
             return challenge
         except SQLAlchemyError as e:
             self.session.rollback()
-            raise InternalServerError(f"Error creating challenge in db: {e}") from e
+            raise InternalServerError(error_msg=f"Error creating challenge in db: {e}") from e
 
     def get_by_user_challenge_name(self, userChallengeName: str) -> Optional[UserChallenges]:
         """
@@ -72,7 +71,7 @@ class UserChallengesRepository:
             self.session.commit()
             return True
         except SQLAlchemyError as e:
-            logger.error(f"Error updating challenge status: {e}")
+            # logger.error(f"Error updating challenge status: {e}")
             self.session.rollback()
             return False
 
@@ -93,7 +92,7 @@ class UserChallengesRepository:
             return True
         except SQLAlchemyError as e:
             self.session.rollback()
-            raise InternalServerError(f"Error updating challenge port: {e}") from e
+            raise InternalServerError(error_msg=f"Error updating challenge port: {e}") from e
 
     def is_running(self, challenge: UserChallenges) -> bool:
         """

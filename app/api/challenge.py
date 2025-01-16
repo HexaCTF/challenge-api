@@ -16,15 +16,15 @@ def create_challenge():
         # Challenge 관련 정보 가져오기 
         res = request.get_json()
         if not res:
-           raise InvalidRequest("Request body is empty or not valid JSON")
+           raise InvalidRequest(error_msg="Request body is empty or not valid JSON")
 
         if 'challenge_id' not in res:
-            raise InvalidRequest("Required field 'challenge_id' is missing in request")
+            raise InvalidRequest(error_msg="Required field 'challenge_id' is missing in request")
         
         challenge_id = res['challenge_id']
         
         if 'username' not in res:
-            raise InvalidRequest("Required field 'username' is missing in request")
+            raise InvalidRequest(error_msg="Required field 'username' is missing in request")
         username = res['username']
 
         # 챌린지 생성 
@@ -32,10 +32,10 @@ def create_challenge():
         endpoint = client.create_challenge_resource(challenge_id, username)
         if endpoint:
             return jsonify({'data' : {'port': endpoint}}), 200
-        return UserChallengeCreationError(f"Faile to create challenge {challenge_id} for user {username}")
+        return UserChallengeCreationError(error_msg=f"Faile to create challenge {challenge_id} for user {username}")
     
     except Exception as e:
-        raise UserChallengeCreationError(str(e)) from e 
+        raise UserChallengeCreationError(error_msg=str(e)) from e 
 
 @challenge_bp.route('/delete', methods=['POST'])    
 def delete_userchallenges():
@@ -47,16 +47,16 @@ def delete_userchallenges():
         res = request.get_json()
         if not res:
             log.error("No data provided")
-            raise UserChallengeDeletionError()
+            raise UserChallengeDeletionError(error_msg="Request body is empty or not valid JSON")
 
         if 'challenge_id' not in res:
             log.error("No challenge_id provided")
-            raise InvalidRequest()
+            raise InvalidRequest(error_msg="Required field 'challenge_id' is missing in request")
         challenge_id = res['challenge_id']
         
         if 'username' not in res:
             log.error("No username provided")
-            raise InvalidRequest()
+            raise InvalidRequest(error_msg="Required field 'username' is missing in request")
         username = res['username']
         
         # 사용자 챌린지 삭제 
@@ -66,9 +66,9 @@ def delete_userchallenges():
         return jsonify({'message' : '챌린지가 정상적으로 삭제되었습니다.'}), 200
     except JSONDecodeError as e:
         log.error("Invalid request format")
-        raise InvalidRequest() from e
+        raise InvalidRequest(error_msg=str(e)) from e
     except Exception as e:
-        raise UserChallengeDeletionError() from e
+        raise UserChallengeDeletionError(error_msg=str(e)) from e
 
 @challenge_bp.route('/status', methods=['POST'])
 def get_userchallenge_status():
@@ -78,23 +78,23 @@ def get_userchallenge_status():
         res = request.get_json()
         if not res:
             log.error("No data provided")
-            raise UserChallengeDeletionError()
+            raise UserChallengeDeletionError(error_msg="Request body is empty or not valid JSON")
 
         if 'challenge_id' not in res:
             log.error("No challenge_id provided")
-            raise InvalidRequest()
+            raise InvalidRequest(error_msg="Required field 'challenge_id' is missing in request")
         challenge_id = res['challenge_id']
 
         if 'username' not in res:
             log.error("No username provided")
-            raise InvalidRequest()
+            raise InvalidRequest(error_msg="Required field 'username' is missing in request")
         username = res['username']
 
         # 사용자 챌린지 상태 조회
         repo = UserChallengesRepository()
         status = repo.get_status(challenge_id, username)
         if status is None:
-            raise UserChallengeNotFoundError()
+            raise UserChallengeNotFoundError(error_msg=f"User challenge not found for {username} and {challenge_id}")
         return jsonify({'data': {'status': status}}), 200
     except Exception as e:
-        raise UserChallengeNotFoundError() from e
+        raise UserChallengeNotFoundError(error_msg=str(e)) from e

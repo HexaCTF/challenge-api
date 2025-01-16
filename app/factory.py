@@ -1,9 +1,9 @@
+import sys
+from app.monitoring.loki_logger import FlaskLokiLogger
 from flask import Flask, g, request
 import threading
 from datetime import datetime
-from typing import Type
-from logging_loki import LokiHandler
-import logging
+from typing import Any, Dict, Type
 
 from app.api.challenge import challenge_bp
 from app.config import Config
@@ -21,7 +21,7 @@ class FlaskApp:
     def __init__(self, config_class: Type[Config] = Config):
         self.app = Flask(__name__)
         self.app.config.from_object(config_class)
-        self.logger = self._setup_logger()
+        self.logger = FlaskLokiLogger(app_name="challenge-api", loki_url=self.app.config['LOKI_URL']).logger
 
         # 초기 설정
         self._init_extensions()
@@ -30,19 +30,13 @@ class FlaskApp:
         self._setup_blueprints()
         self._setup_kafka()
 
-    def _setup_logger(self) -> logging.Logger:
-        """Loki 로거 설정"""
-        handler = LokiHandler(
-            url=self.app.config.get('LOKI_URL', 'http://loki:3100/loki/api/v1/push'),
-            tags={"application": self.app.config.get('APP_NAME', 'flask-app')},
-            version="1"
-        )
-        
-        logger = logging.getLogger(self.app.config.get('APP_NAME', 'flask-app'))
-        logger.setLevel(logging.INFO)
-        logger.addHandler(handler)
-        return logger
+    # def _setup_logger(self) -> logging.Logger:
+    #     """Loki 로거 설정"""
+    #     # 기본 로거 생성
+    #     loki_logger = FlaskLokiLogger(app_name=self.app.name, loki_url=self.app.config['LOKI_URL'])
 
+    #     return loki_logger.logger
+    
     def _init_extensions(self):
         """Extensions 초기화"""
         # Kafka 초기화
@@ -70,6 +64,7 @@ class FlaskApp:
 
         @self.app.errorhandler(CustomBaseException)
         def handle_challenge_error(error):
+            print(f"[DEBUG] error: {error.__dict__}", file=sys.stderr)
             self._log_error(error)
             response = {
                 'error': {
@@ -96,45 +91,107 @@ class FlaskApp:
         @self.app.teardown_appcontext
         def cleanup(exception=None):
             kafka_consumer.stop_consuming()
-
+    
+    def _get_request_context(self) -> Dict[str, Any]:
+       """현재 요청의 컨텍스트 정보 수집"""
+       try:
+           return {
+               "method": request.method,
+               "path": request.path,
+               "remote_addr": request.remote_addr,
+               "user_agent": request.user_agent.string,
+               "request_id": request.headers.get('X-Request-ID', 'unknown'),
+               "timestamp": datetime.utcnow().isoformat()
+           }
+       except Exception as e:
+           # 요청 컨텍스트 추출 실패 시 기본값
+           return {
+               "method": "UNKNOWN",
+               "path": "/",
+               "remote_addr": "",
+               "user_agent": "",
+               "request_id": "unknown",
+               "context_error": str(e)
+            }
+           
     def _log_request(self, response, processing_time: float):
         """HTTP 요청 로깅"""
-        self.logger.info(
-            "HTTP Request",
-            extra={
-                "tags": {
-                    "request_id": request.headers.get('X-Request-ID', 'unknown')
-                },
-                "attributes": {
-                    "method": request.method,
-                    "path": request.path,
-                    "status_code": response.status_code,
-                    "processing_time_ms": round(processing_time * 1000, 2),
-                    "remote_addr": request.remote_addr,
-                    "user_agent": request.user_agent.string,
-                    "timestamp": datetime.utcnow().isoformat()
-                }
+        try:
+            context = self._get_request_context()
+
+            # Prepare labels (these will be indexed by Loki)
+            labels = {
+                "request_id": context.get("request_id", "unknown"),
+                "status_code": str(getattr(response, 'status_code', 'unknown')),
+                "method": context.get("method", "UNKNOWN"),
+                "path": context.get("path", "/")
             }
-        )
+    
+            # Prepare log content
+            log_content = {
+                "processing_time_ms": round(processing_time * 1000, 2),
+                "remote_addr": context.get("remote_addr", ""),
+                "user_agent": context.get("user_agent", ""),
+                "method": context.get("method", ""),
+                "path": context.get("path", ""),
+                "status_code": str(getattr(response, 'status_code', 'unknown')),
+                "timestamp": context.get("timestamp", datetime.utcnow().isoformat())
+            }
+    
+            # 추가 정보 안전하게 포함
+            try:
+                if request.is_json:
+                    log_content["request_body"] = request.get_json()
+            except Exception as e:
+                log_content["request_body_error"] = str(e)
+    
+            self.logger.info(
+                "HTTP Request",
+                extra={
+                    "labels": labels,
+                    "content": log_content
+                }
+            )
+        except Exception as e:
+            # 로깅 중 오류 발생 시 기본 로깅
+            self.logger.error(f"Logging error: {str(e)}")
+        
 
     def _log_error(self, error: CustomBaseException):
         """에러 로깅"""
-        self.logger.error(
-            "Application Error",
-            extra={
-                "tags": {
-                    "error_type": error.error_type.value,
-                    "request_id": request.headers.get('X-Request-ID', 'unknown')
-                },
-                "attributes": {
-                    "error_message": error.error_msg,
-                    "status_code": error.status_code,
-                    "path": request.path,
-                    "method": request.method,
-                    "timestamp": datetime.utcnow().isoformat()
-                }
+        try:
+            # 요청 컨텍스트 안전하게 추출
+            context = {
+                "method": getattr(request, 'method', 'UNKNOWN'),
+                "path": getattr(request, 'path', '/'),
+                "remote_addr": getattr(request, 'remote_addr', ''),
+                "user_agent": str(getattr(request, 'user_agent', '')),
+                "request_id": request.headers.get('X-Request-ID', 'unknown') if request else 'unknown'
             }
-        )
+
+            # 로깅
+            self.logger.error(
+                "Application Error",
+                extra={
+                    "labels": {
+                        "error_type": str(error.error_type.value),
+                        "request_id": context.get('request_id', 'unknown')
+                    },
+                    "content": {
+                        **context,
+                        "error_type": str(error.error_type.value),
+                        "error_message": str(error.message),
+                        "error_msg": str(error.error_msg or ''),
+                        "status_code": error.status_code,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                }
+            )
+
+        except Exception as log_error:
+            # 로깅 중 오류 발생 시 기본 로깅
+            print(f"[DEBUG] Logging error: {log_error}", file=sys.stderr)
+            self.logger.error(f"Error logging failed: {str(log_error)}")
 
     def run(self, **kwargs):
         """애플리케이션 실행"""

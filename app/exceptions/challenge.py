@@ -10,7 +10,7 @@ class ChallengeException(CustomBaseException):
 class ChallengeNotFound(ChallengeException):
     """Challenge를 찾을 수 없을 때의 예외"""
     def __init__(self, error_msg: str = None):
-        super().__init(
+        super().__init__(
             error_type=ApiErrorTypes.CHALLENGE_NOT_FOUND,
             message="Challenge not found",
             status_code=404,

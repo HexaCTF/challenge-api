@@ -31,10 +31,10 @@ class MessageHandler:
             timestamp = message['timestamp']
 
         if not all([username, problem_id, new_status, timestamp]):
-            raise QueueProcessingError(f"Kafka Error : Missing required fields in message: {message}")
+            raise QueueProcessingError(error_msg=f"Kafka Error : Missing required fields in message: {message}")
 
         if new_status not in MessageHandler.VALID_STATUSES:
-            raise QueueProcessingError(f"Kafka Error : Invalid status in message: {new_status}")
+            raise QueueProcessingError(error_msg=f"Kafka Error : Invalid status in message: {new_status}")
 
         return username, problem_id, new_status, timestamp
 
@@ -56,9 +56,9 @@ class MessageHandler:
             challenge = repo.get_by_user_challenge_name(challenge_name)
             success = repo.update_status(challenge, new_status)
             if not success:
-                raise QueueProcessingError(f"Kafka Error : Failed to update challenge status: {challenge_name}")
+                raise QueueProcessingError(error_msg=f"Kafka Error : Failed to update challenge status: {challenge_name}")
         
         except ValueError as e:
-            raise QueueProcessingError(f"Invalid message format {str(e)}") from e 
+            raise QueueProcessingError(error_msg=f"Invalid message format {str(e)}") from e 
         except Exception as e:
-            raise QueueProcessingError(f"Kafka Error: {str(e)}") from e
+            raise QueueProcessingError(error_msg=f"Kafka Error: {str(e)}") from e
