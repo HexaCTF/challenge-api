@@ -19,10 +19,10 @@ class FlaskLokiLogger:
         handler = LokiHandler(
             url=self.app.config['LOKI_URL'],
             tags=self.app.config['LOG_TAGS'],
-            version="1",
-            json_fields= True
+            version="1"
         )
         
+        handler.setFormatter(JSONFormatter())
         logger = logging.getLogger(self.app.config['APP_NAME'])
         logger.setLevel(self.app.config['LOG_LEVEL'])
         logger.addHandler(handler)
@@ -62,7 +62,7 @@ class FlaskLokiLogger:
     def log_error(self, error: CustomBaseException):
         """커스텀 예외 로깅"""
         context = self._get_request_context()
-        
+
         # 모든 필드를 최상위 레벨로 올림
         log_data = {
             "error_type": error.error_type.value,
@@ -74,8 +74,38 @@ class FlaskLokiLogger:
             "method": context["method"],
             "timestamp": context["timestamp"]
         }
-    
+
         self.logger.error(
             "Application Error",
             extra=log_data  # 중첩 구조 제거
         )
+
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        # 기본 로그 데이터를 flatten하게 구성
+        if hasattr(record, 'extra'):
+            # extra의 데이터를 최상위 레벨로 복사
+            extra = record.extra
+            if 'attributes' in extra:
+                # attributes의 모든 필드를 최상위로
+                record.extra.update(extra['attributes'])
+                del record.extra['attributes']
+            if 'tags' in extra:
+                # tags의 모든 필드를 tag_ 접두사를 붙여서 최상위로
+                for key, value in extra['tags'].items():
+                    record.extra[f'tag_{key}'] = value
+                del record.extra['tags']
+
+        log_data = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "level": record.levelname,
+            "message": record.msg,
+            "logger": record.name
+        }
+
+        # extra 데이터 추가
+        if hasattr(record, 'extra'):
+            log_data.update(record.extra)
+
+        # JSON으로 직렬화할 때 오류 방지
+        return json.dumps(log_data, default=str)
