@@ -20,7 +20,7 @@ class FlaskLokiLogger:
             tags=self.app.config['LOG_TAGS'],
             version="1"
         )
-
+        handler.setFormatter(JSONFormatter())
         logger = logging.getLogger(self.app.config['APP_NAME'])
         logger.setLevel(self.app.config['LOG_LEVEL'])
         logger.addHandler(handler)
@@ -76,3 +76,20 @@ class FlaskLokiLogger:
                 "attributes": context
             }
         )
+
+
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        # 기본 로그 데이터
+        log_data = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "level": record.levelname,
+            "message": record.msg,
+            "logger": record.name
+        }
+
+        # extra 데이터가 있으면 추가
+        if hasattr(record, 'extra'):
+            log_data.update(record.extra)
+
+        return json.dumps(log_data)

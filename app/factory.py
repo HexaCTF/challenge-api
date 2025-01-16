@@ -102,14 +102,18 @@ class FlaskApp:
         self.logger.info(
             "HTTP Request",
             extra={
-                "request_id": request.headers.get('X-Request-ID', 'unknown'),
-                "method": request.method,
-                "path": request.path,
-                "status_code": response.status_code,
-                "processing_time_ms": round(processing_time * 1000, 2),
-                "remote_addr": request.remote_addr,
-                "user_agent": request.user_agent.string,
-                "timestamp": datetime.utcnow().isoformat()
+                "tags": {
+                    "request_id": request.headers.get('X-Request-ID', 'unknown')
+                },
+                "attributes": {
+                    "method": request.method,
+                    "path": request.path,
+                    "status_code": response.status_code,
+                    "processing_time_ms": round(processing_time * 1000, 2),
+                    "remote_addr": request.remote_addr,
+                    "user_agent": request.user_agent.string,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
             }
         )
 
@@ -118,13 +122,17 @@ class FlaskApp:
         self.logger.error(
             "Application Error",
             extra={
-                "error_type": error.error_type.value,
-                "request_id": request.headers.get('X-Request-ID', 'unknown'),
-                "error_message": error.error_msg,
-                "status_code": error.status_code,
-                "path": request.path,
-                "method": request.method,
-                "timestamp": datetime.utcnow().isoformat()
+                "tags": {
+                    "error_type": error.error_type.value,
+                    "request_id": request.headers.get('X-Request-ID', 'unknown')
+                },
+                "attributes": {
+                    "error_message": error.error_msg,
+                    "status_code": error.status_code,
+                    "path": request.path,
+                    "method": request.method,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
             }
         )
 
