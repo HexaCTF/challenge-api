@@ -32,7 +32,7 @@ def create_challenge():
         endpoint = client.create_challenge_resource(challenge_id, username)
         if endpoint:
             return jsonify({'data' : {'port': endpoint}}), 200
-        return UserChallengeCreationError(error_msg=f"Faile to create challenge {challenge_id} for user {username}")
+        raise UserChallengeCreationError(error_msg=f"Faile to create challenge {challenge_id} for user {username}")
     
     except Exception as e:
         raise UserChallengeCreationError(error_msg=str(e)) from e 
