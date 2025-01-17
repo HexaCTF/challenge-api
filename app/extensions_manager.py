@@ -1,13 +1,11 @@
 import logging
+import sys
 from threading import Lock, Thread, Event
 from typing import Optional, Callable
 from flask import Flask, current_app
 from flask_sqlalchemy import SQLAlchemy
 from app.extensions.db.config import MariaDBConfig
 from app.extensions.kafka import KafkaConfig, KafkaEventConsumer
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 class FlaskKafkaConsumer:
     """Flask 애플리케이션에서 Kafka 메시지 소비를 관리하는 클래스"""
@@ -33,7 +31,7 @@ class FlaskKafkaConsumer:
         """Thread-safe하게 메시지 소비 시작"""
         with self._lock:
             if self._consumer_thread is not None:
-                logger.warning("Consumer thread already running")
+                # logger.warning("Consumer thread already running")
                 return
 
             self._running.set()
@@ -43,13 +41,13 @@ class FlaskKafkaConsumer:
                 daemon=True
             )
             self._consumer_thread.start()
-            logger.info("Kafka consumer thread started")
+            # logger.info("Kafka consumer thread started")
 
     def stop_consuming(self) -> None:
         """Thread-safe하게 메시지 소비 중지"""
         with self._lock:
             if not self._running.is_set():
-                logger.warning("Consumer not running")
+                # logger.warning("Consumer not running")
                 return
 
             self._running.clear()
@@ -59,9 +57,10 @@ class FlaskKafkaConsumer:
             if self._consumer_thread:
                 self._consumer_thread.join(timeout=5.0)
                 if self._consumer_thread.is_alive():
-                    logger.warning("Consumer thread did not stop gracefully")
+                    print("Consumer thread did not stop gracefully", file=sys.stderr)
+                    # logger.warning("Consumer thread did not stop gracefully")
                 self._consumer_thread = None
-            logger.info("Kafka consumer stopped")
+            # logger.info("Kafka consumer stopped")
 
     def _consume_messages(self, message_handler: Callable) -> None:
         """Thread-safe한 메시지 소비 루프"""
@@ -71,14 +70,16 @@ class FlaskKafkaConsumer:
                     try:
                         self.consumer.consume_events(message_handler)
                     except Exception as e:
-                        logger.error(f"Error consuming messages: {e}")
+                        # logger.error(f"Error consuming messages: {e}")
                         if self._running.is_set():
-                            logger.info("Attempting to reconnect...")
+                            # logger.info("Attempting to reconnect...")
                             self._running.wait(timeout=5.0)
             except Exception as e:
-                logger.error(f"Fatal error in consumer thread: {e}")
+                print(f"[ERROR] Fatal error in consumer thread: {e}", file=sys.stderr)
+                # logger.error(f"Fatal error in consumer thread: {e}")
             finally:
-                logger.info("Consumer thread ending")
+                print("Consumer thread ending", file=sys.stderr)
+                # logger.info("Consumer thread ending")
 
 # 전역 인스턴스 생성
 db = SQLAlchemy()

@@ -9,7 +9,7 @@ services:
       - ZOOKEEPER_CLIENT_PORT=2181
       - ZOOKEEPER_TICK_TIME=2000
     restart: unless-stopped
-  
+
   kafka:
     image: confluentinc/cp-kafka:latest
     container_name: challenge_kafka
@@ -28,7 +28,7 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     restart: unless-stopped
-  
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: challenge_kafka_ui
@@ -41,7 +41,7 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     restart: unless-stopped
-  
+
   mariadb:
     image: mariadb:10.6
     container_name: challenge_db
@@ -62,10 +62,10 @@ services:
     image: prom/prometheus:latest
     container_name: challenge_prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
     ports:
       - "9090:9090"
     volumes:
@@ -84,7 +84,7 @@ services:
     command:
       - "-config.file=/etc/loki/local-config.yaml"
       - "-config.expand-env=true"
-    user: "10001:10001"  # Explicitly set user
+    user: "10001:10001" # Explicitly set user
     restart: unless-stopped
 
   grafana:
@@ -98,7 +98,7 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - ./configs/grafana/provisioning:/etc/grafana/provisioning
-      - ./configs/grafana/dashboards:/etc/grafana/dashboards  
+      - ./configs/grafana/dashboards:/etc/grafana/dashboards
       - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
@@ -165,4 +165,4 @@ volumes:
   prometheus_data:
   grafana_data:
   loki_data:
-  loki_wal:  # WAL 볼륨 추가
+  loki_wal: # WAL 볼륨 추가
