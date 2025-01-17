@@ -2,7 +2,7 @@ import logging
 import sys
 from threading import Lock, Thread, Event
 from typing import Optional, Callable
-from flask import Flask, 
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from app.extensions.kafka import KafkaConfig, KafkaEventConsumer
 
