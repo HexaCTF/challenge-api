@@ -29,7 +29,7 @@ def create_challenge():
     endpoint = client.create_challenge_resource(challenge_id, username)
     if not endpoint:
         raise  UserChallengeCreationError(error_msg=f"Faile to create challenge {challenge_id} for user {username}")
-    
+        
     return jsonify({'data' : {'port': endpoint}}), 200
 
 @challenge_bp.route('/delete', methods=['POST'])    
