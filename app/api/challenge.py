@@ -12,30 +12,25 @@ challenge_bp = Blueprint('challenge', __name__)
 @challenge_bp.route('', methods=['POST'])
 def create_challenge():
     """사용자 챌린지 생성"""
-    try:        
-        # Challenge 관련 정보 가져오기 
-        res = request.get_json()
-        if not res:
-           raise InvalidRequest(error_msg="Request body is empty or not valid JSON")
+   # Challenge 관련 정보 가져오기 
+    res = request.get_json()
+    if not res:
+       raise InvalidRequest(error_msg="Request body is empty or not valid JSON")
+    if 'challenge_id' not in res:
+        raise InvalidRequest(error_msg="Required field 'challenge_id' is missing in request")
 
-        if 'challenge_id' not in res:
-            raise InvalidRequest(error_msg="Required field 'challenge_id' is missing in request")
-        
-        challenge_id = res['challenge_id']
-        
-        if 'username' not in res:
-            raise InvalidRequest(error_msg="Required field 'username' is missing in request")
-        username = res['username']
+    challenge_id = res['challenge_id']
 
-        # 챌린지 생성 
-        client = K8sClient()
-        endpoint = client.create_challenge_resource(challenge_id, username)
-        if endpoint:
-            return jsonify({'data' : {'port': endpoint}}), 200
-        raise UserChallengeCreationError(error_msg=f"Faile to create challenge {challenge_id} for user {username}")
-    
-    except Exception as e:
-        raise UserChallengeCreationError(error_msg=str(e)) from e 
+    if 'username' not in res:
+        raise InvalidRequest(error_msg="Required field 'username' is missing in request")
+    username = res['username']
+    # 챌린지 생성 
+    client = K8sClient()
+    endpoint = client.create_challenge_resource(challenge_id, username)
+    if not endpoint:
+        raise  UserChallengeCreationError(error_msg=f"Faile to create challenge {challenge_id} for user {username}")
+        
+    return jsonify({'data' : {'port': endpoint}}), 200
 
 @challenge_bp.route('/delete', methods=['POST'])    
 def delete_userchallenges():
@@ -67,8 +62,6 @@ def delete_userchallenges():
     except JSONDecodeError as e:
         log.error("Invalid request format")
         raise InvalidRequest(error_msg=str(e)) from e
-    except Exception as e:
-        raise UserChallengeDeletionError(error_msg=str(e)) from e
 
 @challenge_bp.route('/status', methods=['POST'])
 def get_userchallenge_status():
