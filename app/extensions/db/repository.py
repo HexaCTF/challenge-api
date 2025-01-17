@@ -51,7 +51,11 @@ class UserChallengesRepository:
         Returns:
             UserChallenges: 사용자 챌린지
         """
-        return UserChallenges.query.filter_by(userChallengeName=userChallengeName).first()
+        user_challenge = UserChallenges.query.filter_by(userChallengeName=userChallengeName).first()
+        if not user_challenge:
+            raise InternalServerError(error_msg=f"User challenge {userChallengeName} not found")
+        return user_challenge
+        
 
     def update_status(self, challenge: UserChallenges, new_status: str) -> bool:
         """
@@ -73,7 +77,7 @@ class UserChallengesRepository:
         except SQLAlchemyError as e:
             # logger.error(f"Error updating challenge status: {e}")
             self.session.rollback()
-            return False
+            raise InternalServerError(error_msg=f"Error updating challenge status: {e}") from e
 
     def update_port(self, challenge: UserChallenges, port: int) -> bool:
         """
