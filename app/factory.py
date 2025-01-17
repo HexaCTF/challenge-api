@@ -28,19 +28,12 @@ class FlaskApp:
         self._setup_middleware()
         self._register_error_handlers()
         self._setup_blueprints()
-        self._setup_kafka()
-
-    # def _setup_logger(self) -> logging.Logger:
-    #     """Loki 로거 설정"""
-    #     # 기본 로거 생성
-    #     loki_logger = FlaskLokiLogger(app_name=self.app.name, loki_url=self.app.config['LOKI_URL'])
-
-    #     return loki_logger.logger
-    
+   
     def _init_extensions(self):
         """Extensions 초기화"""
         # Kafka 초기화
         kafka_consumer.init_app(self.app)
+        kafka_consumer.start_consuming(MessageHandler.handle_message)
         
         # DB 초기화
         db.init_app(self.app)
@@ -77,20 +70,6 @@ class FlaskApp:
     def _setup_blueprints(self):
         """Blueprint 등록"""
         self.app.register_blueprint(challenge_bp, url_prefix='/v1/user-challenges')
-
-    def _setup_kafka(self):
-        """Kafka 컨슈머 설정"""
-        consumer_thread = threading.Thread(
-            target=start_kafka_consumer,
-            args=(self.app,),
-            daemon=True
-        )
-        consumer_thread.start()
-        self.app.consumer_thread = consumer_thread
-
-        @self.app.teardown_appcontext
-        def cleanup(exception=None):
-            kafka_consumer.stop_consuming()
     
     def _get_request_context(self) -> Dict[str, Any]:
        """현재 요청의 컨텍스트 정보 수집"""
