@@ -1,9 +1,13 @@
 import sys
+
+from requests import Response
 from app.monitoring.loki_logger import FlaskLokiLogger
+from app.monitoring.system_metrics_collector import SystemMetricsCollector
 from flask import Flask, g, request
 import threading
 from datetime import datetime
 from typing import Any, Dict, Type
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from app.api.challenge import challenge_bp
 from app.config import Config
@@ -28,6 +32,7 @@ class FlaskApp:
         self._setup_middleware()
         self._register_error_handlers()
         self._setup_blueprints()
+        self._init_metrics_collector()
    
     def _init_extensions(self):
         """Extensions 초기화"""
@@ -40,6 +45,15 @@ class FlaskApp:
         with self.app.app_context():
             db.create_all()
 
+    def _init_metrics_collector(self):
+        system_collector = SystemMetricsCollector(self.app)
+        system_collector.start_collecting()
+        
+        # CTF metrics
+        @self.app.route('/metrics/ctf')
+        def challenge_metrics():
+            return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
+        
     def _setup_middleware(self):
         """미들웨어 설정"""
         @self.app.before_request

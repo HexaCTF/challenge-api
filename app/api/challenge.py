@@ -1,5 +1,6 @@
 from json import JSONDecodeError
 from logging import log
+from app.monitoring.ctf_metrics_collector import ChallengeMetricsCollector
 from flask import Blueprint, jsonify, request
 
 from app.exceptions.api import InvalidRequest
@@ -8,6 +9,7 @@ from app.extensions.db.repository import UserChallengesRepository
 from app.extensions.k8s.client import K8sClient
 
 challenge_bp = Blueprint('challenge', __name__)
+metrics = ChallengeMetricsCollector()
 
 @challenge_bp.route('', methods=['POST'])
 def create_challenge():
@@ -15,21 +17,31 @@ def create_challenge():
    # Challenge 관련 정보 가져오기 
     res = request.get_json()
     if not res:
-       raise InvalidRequest(error_msg="Request body is empty or not valid JSON")
+        metrics.challenge_operations.labels(operation='create',result='error').inc()
+        raise InvalidRequest(error_msg="Request body is empty or not valid JSON")
     if 'challenge_id' not in res:
+        metrics.challenge_operations.labels(operation='create',result='error').inc()
         raise InvalidRequest(error_msg="Required field 'challenge_id' is missing in request")
 
     challenge_id = res['challenge_id']
 
     if 'username' not in res:
+        metrics.challenge_operations.labels(operation='create',result='error').inc()
         raise InvalidRequest(error_msg="Required field 'username' is missing in request")
     username = res['username']
     # 챌린지 생성 
     client = K8sClient()
     endpoint = client.create_challenge_resource(challenge_id, username)
     if not endpoint:
+        metrics.challenge_operations.labels(operation='create',result='error').inc()
         raise  UserChallengeCreationError(error_msg=f"Faile to create challenge {challenge_id} for user {username}")
     
+    metrics.challenge_state.labels(
+            challenge_id=challenge_id,
+            username=username
+        ).set(1)
+        
+    metrics.challenge_operations.labels(operation='create',result='success').inc()
     return jsonify({'data' : {'port': endpoint}}), 200
 
 @challenge_bp.route('/delete', methods=['POST'])    
@@ -42,15 +54,18 @@ def delete_userchallenges():
         res = request.get_json()
         if not res:
             log.error("No data provided")
+            metrics.challenge_operations.labels(operation='delete',result='error').inc()
             raise UserChallengeDeletionError(error_msg="Request body is empty or not valid JSON")
 
         if 'challenge_id' not in res:
             log.error("No challenge_id provided")
+            metrics.challenge_operations.labels(operation='delete',result='error').inc()
             raise InvalidRequest(error_msg="Required field 'challenge_id' is missing in request")
         challenge_id = res['challenge_id']
         
         if 'username' not in res:
             log.error("No username provided")
+            metrics.challenge_operations.labels(operation='delete',result='error').inc()
             raise InvalidRequest(error_msg="Required field 'username' is missing in request")
         username = res['username']
         
@@ -58,9 +73,19 @@ def delete_userchallenges():
         client = K8sClient()
         client.delete_userchallenge(username, challenge_id)
         
+        # Metrics
+        metrics.challenge_state.labels(
+            challenge_id=challenge_id,
+            username=username
+        ).set(0)
+        metrics.challenge_operations.labels(
+            operation='delete',
+            result='success'
+        ).inc()
         return jsonify({'message' : '챌린지가 정상적으로 삭제되었습니다.'}), 200
     except JSONDecodeError as e:
         log.error("Invalid request format")
+        metrics.challenge_operations.labels(operation='delete',result='error').inc()
         raise InvalidRequest(error_msg=str(e)) from e
 
 @challenge_bp.route('/status', methods=['POST'])
