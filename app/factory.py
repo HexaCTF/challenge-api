@@ -27,7 +27,7 @@ class FlaskApp:
         self.app = Flask(__name__)
         self.app.config.from_object(config_class)
         self.logger = FlaskLokiLogger(app_name="challenge-api", loki_url=self.app.config['LOKI_URL']).logger
-
+        
         # 초기 설정
         self._init_extensions()
         self._setup_middleware()
@@ -48,8 +48,6 @@ class FlaskApp:
 
     def _init_metrics_collector(self):
 
-        challenge_collector = ChallengeMetricsCollector()
-    
         # System 메트릭 수집기 초기화
         system_collector = SystemMetricsCollector(self.app)
         system_collector.start_collecting()

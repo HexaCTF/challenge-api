@@ -56,3 +56,5 @@ class ChallengeMetricsCollector:
             result=result
         ).inc()
 
+
+challenge_metrics_collector = ChallengeMetricsCollector()
