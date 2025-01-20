@@ -1,9 +1,14 @@
 import sys
+
+from requests import Response
+from app.monitoring.ctf_metrics_collector import ChallengeMetricsCollector
 from app.monitoring.loki_logger import FlaskLokiLogger
+from app.monitoring.system_metrics_collector import SystemMetricsCollector
 from flask import Flask, g, request
 import threading
 from datetime import datetime
 from typing import Any, Dict, Type
+from prometheus_client import REGISTRY, generate_latest, CONTENT_TYPE_LATEST
 
 from app.api.challenge import challenge_bp
 from app.config import Config
@@ -22,12 +27,13 @@ class FlaskApp:
         self.app = Flask(__name__)
         self.app.config.from_object(config_class)
         self.logger = FlaskLokiLogger(app_name="challenge-api", loki_url=self.app.config['LOKI_URL']).logger
-
+        
         # 초기 설정
         self._init_extensions()
         self._setup_middleware()
         self._register_error_handlers()
         self._setup_blueprints()
+        self._init_metrics_collector()
    
     def _init_extensions(self):
         """Extensions 초기화"""
@@ -40,6 +46,13 @@ class FlaskApp:
         with self.app.app_context():
             db.create_all()
 
+    def _init_metrics_collector(self):
+
+        # System 메트릭 수집기 초기화
+        system_collector = SystemMetricsCollector(self.app)
+        system_collector.start_collecting()
+        
+        
     def _setup_middleware(self):
         """미들웨어 설정"""
         @self.app.before_request
@@ -80,7 +93,6 @@ class FlaskApp:
                "remote_addr": request.remote_addr,
                "user_agent": request.user_agent.string,
                "request_id": request.headers.get('X-Request-ID', 'unknown'),
-               "timestamp": datetime.utcnow().isoformat()
            }
        except Exception as e:
            # 요청 컨텍스트 추출 실패 시 기본값
@@ -103,7 +115,6 @@ class FlaskApp:
                 "request_id": context.get("request_id", "unknown"),
                 "status_code": str(getattr(response, 'status_code', 'unknown')),
                 "method": context.get("method", "UNKNOWN"),
-                "path": context.get("path", "/")
             }
     
             # Prepare log content
@@ -111,19 +122,10 @@ class FlaskApp:
                 "processing_time_ms": round(processing_time * 1000, 2),
                 "remote_addr": context.get("remote_addr", ""),
                 "user_agent": context.get("user_agent", ""),
-                "method": context.get("method", ""),
                 "path": context.get("path", ""),
-                "status_code": str(getattr(response, 'status_code', 'unknown')),
-                "timestamp": context.get("timestamp", datetime.utcnow().isoformat())
             }
     
-            # 추가 정보 안전하게 포함
-            try:
-                if request.is_json:
-                    log_content["request_body"] = request.get_json()
-            except Exception as e:
-                log_content["request_body_error"] = str(e)
-    
+
             self.logger.info(
                 "HTTP Request",
                 extra={
@@ -139,30 +141,19 @@ class FlaskApp:
     def _log_error(self, error: CustomBaseException):
         """에러 로깅"""
         try:
-            # 요청 컨텍스트 안전하게 추출
-            context = {
-                "method": getattr(request, 'method', 'UNKNOWN'),
-                "path": getattr(request, 'path', '/'),
-                "remote_addr": getattr(request, 'remote_addr', ''),
-                "user_agent": str(getattr(request, 'user_agent', '')),
-                "request_id": request.headers.get('X-Request-ID', 'unknown') if request else 'unknown'
-            }
-
             # 로깅
             self.logger.error(
                 "Application Error",
                 extra={
                     "labels": {
                         "error_type": str(error.error_type.value),
-                        "request_id": context.get('request_id', 'unknown')
+                        "request_id": request.headers.get('X-Request-ID', 'unknown') if request else 'unknown'
                     },
                     "content": {
-                        **context,
                         "error_type": str(error.error_type.value),
                         "error_message": str(error.message),
                         "error_msg": str(error.error_msg or ''),
                         "status_code": error.status_code,
-                        "timestamp": datetime.utcnow().isoformat()
                     }
                 }
             )
