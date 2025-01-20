@@ -43,6 +43,7 @@ def create_challenge():
         ).set(1)
         
     challenge_metrics_collector.challenge_operations.labels(operation='create',result='success').inc()
+
     return jsonify({'data' : {'port': endpoint}}), 200
 
 @challenge_bp.route('/delete', methods=['POST'])    
