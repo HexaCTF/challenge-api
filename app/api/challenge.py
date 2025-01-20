@@ -9,11 +9,12 @@ from app.extensions.db.repository import UserChallengesRepository
 from app.extensions.k8s.client import K8sClient
 
 challenge_bp = Blueprint('challenge', __name__)
-metrics = ChallengeMetricsCollector()
+
 
 @challenge_bp.route('', methods=['POST'])
 def create_challenge():
     """사용자 챌린지 생성"""
+    metrics = ChallengeMetricsCollector()
    # Challenge 관련 정보 가져오기 
     res = request.get_json()
     if not res:
@@ -38,7 +39,8 @@ def create_challenge():
     
     metrics.challenge_state.labels(
             challenge_id=challenge_id,
-            username=username
+            username=username,
+            state='active'
         ).set(1)
         
     metrics.challenge_operations.labels(operation='create',result='success').inc()
@@ -46,6 +48,7 @@ def create_challenge():
 
 @challenge_bp.route('/delete', methods=['POST'])    
 def delete_userchallenges():
+    metrics = ChallengeMetricsCollector()
     try:
         """
         사용자 챌린지 삭제 
@@ -76,7 +79,8 @@ def delete_userchallenges():
         # Metrics
         metrics.challenge_state.labels(
             challenge_id=challenge_id,
-            username=username
+            username=username,
+            state='inactive'
         ).set(0)
         metrics.challenge_operations.labels(
             operation='delete',
@@ -91,6 +95,7 @@ def delete_userchallenges():
 @challenge_bp.route('/status', methods=['POST'])
 def get_userchallenge_status():
     """ 사용자 챌린지 상태 조회 """
+    metrics = ChallengeMetricsCollector()
     try:
         # Challenge 관련 정보 가져오기
         res = request.get_json()

@@ -1,13 +1,14 @@
 import sys
 
 from requests import Response
+from app.monitoring.ctf_metrics_collector import ChallengeMetricsCollector
 from app.monitoring.loki_logger import FlaskLokiLogger
 from app.monitoring.system_metrics_collector import SystemMetricsCollector
 from flask import Flask, g, request
 import threading
 from datetime import datetime
 from typing import Any, Dict, Type
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import REGISTRY, generate_latest, CONTENT_TYPE_LATEST
 
 from app.api.challenge import challenge_bp
 from app.config import Config
@@ -46,13 +47,13 @@ class FlaskApp:
             db.create_all()
 
     def _init_metrics_collector(self):
+
+        challenge_collector = ChallengeMetricsCollector()
+    
+        # System 메트릭 수집기 초기화
         system_collector = SystemMetricsCollector(self.app)
         system_collector.start_collecting()
         
-        # CTF metrics
-        @self.app.route('/metrics/ctf')
-        def challenge_metrics():
-            return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
         
     def _setup_middleware(self):
         """미들웨어 설정"""
