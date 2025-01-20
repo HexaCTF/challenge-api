@@ -140,7 +140,7 @@ services:
       - SECRET_KEY=your-super-secret-key-here
       # Kafka
       - KAFKA_BOOTSTRAP_SERVERS=127.0.0.1:9093
-      - KAFKA_TOPIC=challenge-statustem_metrics_collectos
+      - KAFKA_TOPIC=challenge-status
       - KAFKA_GROUP_ID=challenge-consumer-group
       # Loki 설정 추가
       - LOKI_URL=http://127.0.0.1:3100/loki/api/v1/push
