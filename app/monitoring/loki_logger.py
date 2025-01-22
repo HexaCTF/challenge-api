@@ -16,17 +16,11 @@ class FlaskLokiLogger:
     
     def _setup_logger(self, loki_url: str) -> logging.Logger:
         """Loki 로거 설정"""
-        # Define static tags for Loki indexing
-        tags = {
-            "app": self.app_name,
-        }
         
         handler = LokiHandler(
             url=loki_url,
-            tags=tags,
             version="1",
         )
-        
         
         handler.setFormatter(LokiJsonFormatter())
         async_handler = AsyncHandler(handler)

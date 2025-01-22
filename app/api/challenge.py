@@ -81,10 +81,12 @@ def delete_userchallenges():
             username=username,
             state='inactive'
         ).set(0)
+        
         challenge_metrics_collector.challenge_operations.labels(
             operation='delete',
             result='success'
         ).inc()
+        
         return jsonify({'message' : '챌린지가 정상적으로 삭제되었습니다.'}), 200
     except JSONDecodeError as e:
         log.error("Invalid request format")
