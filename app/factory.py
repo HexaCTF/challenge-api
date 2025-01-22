@@ -104,35 +104,50 @@ class FlaskApp:
                "request_id": "unknown",
                "context_error": str(e)
             }
-           
+          
     def _log_request(self, response, processing_time: float):
         """HTTP 요청 로깅"""
         try:
             context = self._get_request_context()
 
             # Prepare labels (these will be indexed by Loki)
-            labels = {
-                "request_id": context.get("request_id", "unknown"),
-                "status_code": str(getattr(response, 'status_code', 'unknown')),
-                "method": context.get("method", "UNKNOWN"),
+            tags = {
+                "request_id": str(context.get("request_id", "unknown")),
+                "status_code": str(response.status_code),
+                "method": str(context.get("method", "UNKNOWN")),
             }
     
             # Prepare log content
             log_content = {
-                "processing_time_ms": round(processing_time * 1000, 2),
                 "remote_addr": context.get("remote_addr", ""),
                 "user_agent": context.get("user_agent", ""),
                 "path": context.get("path", ""),
             }
     
-
-            self.logger.info(
-                "HTTP Request",
-                extra={
-                    "labels": labels,
-                    "content": log_content
-                }
-            )
+            if response.status_code >= 500:
+                self.logger.error(
+                    "HTTP Request",
+                    extra={
+                        "tags": tags,
+                        "content": log_content
+                    }
+                )
+            elif response.status_code >= 400:
+                self.logger.warning(
+                    "HTTP Request",
+                    extra={
+                        "tags": tags,
+                        "content": log_content
+                    }
+                )
+            else:    
+                self.logger.info(
+                    "HTTP Request",
+                    extra={
+                        "tags": tags,
+                        "content": log_content
+                    }
+                )
         except Exception as e:
             # 로깅 중 오류 발생 시 기본 로깅
             self.logger.error(f"Logging error: {str(e)}")
@@ -145,7 +160,7 @@ class FlaskApp:
             self.logger.error(
                 "Application Error",
                 extra={
-                    "labels": {
+                    "tags": {
                         "error_type": str(error.error_type.value),
                         "request_id": request.headers.get('X-Request-ID', 'unknown') if request else 'unknown'
                     },
