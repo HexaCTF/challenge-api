@@ -1,6 +1,5 @@
-version: "3.8"
-
 services:
+  # 기존 서비스들...
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.0
     container_name: challenge_zookeeper
@@ -58,6 +57,54 @@ services:
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: unless-stopped
 
+  # 모니터링 스택 추가
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: challenge_prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:2.9.0
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./configs/loki/local-config.yaml:/etc/loki/local-config.yaml
+      - ./loki_data:/loki
+      - ./loki_wal:/wal
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+      - "-config.expand-env=true"
+    user: "10001:10001" # Explicitly set user
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: challenge_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./configs/grafana/provisioning:/etc/grafana/provisioning
+      - ./configs/grafana/dashboards:/etc/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+
   challenge-operator:
     image: hexactf/challenge-operator:latest
     network_mode: "host"
@@ -78,11 +125,11 @@ services:
   app:
     image: hexactf/challenge-api:latest
     container_name: challenge_app
-    network_mode: "host" # Using host network mode
+    network_mode: "host"
     environment:
       - FLASK_ENV=development
       # Database
-      - DB_HOST=127.0.0.1 # Changed to localhost since using host network
+      - DB_HOST=127.0.0.1
       - DB_PORT=3306
       - DB_NAME=challenge_db
       - DB_USER=challenge_user
@@ -92,15 +139,30 @@ services:
       # Security
       - SECRET_KEY=your-super-secret-key-here
       # Kafka
-      - KAFKA_BOOTSTRAP_SERVERS=127.0.0.1:9093 # Changed to localhost port
+      - KAFKA_BOOTSTRAP_SERVERS=127.0.0.1:9093
       - KAFKA_TOPIC=challenge-status
       - KAFKA_GROUP_ID=challenge-consumer-group
+      # Loki 설정 추가
+      - LOKI_URL=http://127.0.0.1:3100/loki/api/v1/push
+      - LOKI_PROTOCOL=http
+      - LOKI_HOST=127.0.0.1
+      - LOKI_PORT=3100
+      - LOKI_PATH=/loki/api/v1/push
+      - LOG_LEVEL=INFO
+      - APP_NAME=challenge-service
+      - ENVIRONMENT=development
       - KUBECONFIG=/root/.kube/config
     volumes:
       - ${HOME}/.kube/config:/root/.kube/config:ro
     depends_on:
       - mariadb
       - kafka
+      - loki
     restart: unless-stopped
+
 volumes:
   mariadb_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  loki_wal: # WAL 볼륨 추가

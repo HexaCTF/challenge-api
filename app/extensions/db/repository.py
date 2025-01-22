@@ -6,7 +6,6 @@ from app.exceptions.api import InternalServerError
 from app.extensions_manager import db
 from app.extensions.db.models import Challenges, UserChallenges
 
-logger = logging.getLogger(__name__)
 
 class UserChallengesRepository:
     def __init__(self, session=None):
@@ -39,9 +38,8 @@ class UserChallengesRepository:
             self.session.commit()
             return challenge
         except SQLAlchemyError as e:
-            logger.error(f"Error creating challenge in db: {e}")
             self.session.rollback()
-            raise InternalServerError() from e
+            raise InternalServerError(error_msg=f"Error creating challenge in db: {e}") from e
 
     def get_by_user_challenge_name(self, userChallengeName: str) -> Optional[UserChallenges]:
         """
@@ -53,7 +51,11 @@ class UserChallengesRepository:
         Returns:
             UserChallenges: 사용자 챌린지
         """
-        return UserChallenges.query.filter_by(userChallengeName=userChallengeName).first()
+        user_challenge = UserChallenges.query.filter_by(userChallengeName=userChallengeName).first()
+        if not user_challenge:
+            raise InternalServerError(error_msg=f"User challenge {userChallengeName} not found")
+        return user_challenge
+        
 
     def update_status(self, challenge: UserChallenges, new_status: str) -> bool:
         """
@@ -68,12 +70,14 @@ class UserChallengesRepository:
         """
         try:
             challenge.status = new_status
+            self.session.add(challenge)  # Add this line to track the object
+            self.session.flush()  
             self.session.commit()
             return True
         except SQLAlchemyError as e:
-            logger.error(f"Error updating challenge status: {e}")
+            # logger.error(f"Error updating challenge status: {e}")
             self.session.rollback()
-            return False
+            raise InternalServerError(error_msg=f"Error updating challenge status: {e}") from e
 
     def update_port(self, challenge: UserChallenges, port: int) -> bool:
         """
@@ -91,9 +95,8 @@ class UserChallengesRepository:
             self.session.commit()
             return True
         except SQLAlchemyError as e:
-            logger.error(f"Error updating challenge port: {e}")
             self.session.rollback()
-            return False
+            raise InternalServerError(error_msg=f"Error updating challenge port: {e}") from e
 
     def is_running(self, challenge: UserChallenges) -> bool:
         """
@@ -106,6 +109,20 @@ class UserChallengesRepository:
             bool: 챌린지 실행 여부
         """
         return challenge.status == 'Running'
+
+    def get_status(self, challenge_id, username) -> Optional[str]:
+        """
+        챌린지 상태 조회
+        
+        Args:
+            challenge_id (int): 챌린지 아이디
+            username (str): 사용자 이름
+        
+        Returns:
+            str: 챌린지 상태
+        """
+        challenge = UserChallenges.query.filter_by(C_idx=challenge_id, username=username).first()
+        return challenge.status if challenge else None
 
 class ChallengeRepository:
     @staticmethod
