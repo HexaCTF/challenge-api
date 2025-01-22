@@ -1,4 +1,3 @@
-import json
 import sys
 
 from requests import Response
@@ -105,7 +104,7 @@ class FlaskApp:
                "request_id": "unknown",
                "context_error": str(e)
             }
-           
+          
     def _log_request(self, response, processing_time: float):
         """HTTP 요청 로깅"""
         try:
@@ -113,65 +112,63 @@ class FlaskApp:
 
             # Prepare labels (these will be indexed by Loki)
             tags = {
-                "request_id": context.get("request_id", "unknown"),
-                "status_code": str(getattr(response, 'status_code', 'unknown')),
-                "method": context.get("method", "UNKNOWN"),
+                "request_id": str(context.get("request_id", "unknown")),
+                "status_code": str(response.status_code),
+                "method": str(context.get("method", "UNKNOWN")),
             }
     
             # Prepare log content
             log_content = {
-                "processing_time_ms": round(processing_time * 1000, 2),
                 "remote_addr": context.get("remote_addr", ""),
                 "user_agent": context.get("user_agent", ""),
                 "path": context.get("path", ""),
             }
-
-            self.logger.info(
-                "HTTP Request",
-                extra={
-                    "tags": tags,
-                    "content": log_content
-                }
-            )
+    
+            if response.status_code >= 500:
+                self.logger.error(
+                    "HTTP Request",
+                    extra={
+                        "tags": tags,
+                        "content": log_content
+                    }
+                )
+            elif response.status_code >= 400:
+                self.logger.warning(
+                    "HTTP Request",
+                    extra={
+                        "tags": tags,
+                        "content": log_content
+                    }
+                )
+            else:    
+                self.logger.info(
+                    "HTTP Request",
+                    extra={
+                        "tags": tags,
+                        "content": log_content
+                    }
+                )
         except Exception as e:
             # 로깅 중 오류 발생 시 기본 로깅
             self.logger.error(f"Logging error: {str(e)}")
         
 
-
     def _log_error(self, error: CustomBaseException):
         """에러 로깅"""
         try:
-            # error_msg가 JSON 형태라면 파싱
-            parsed_error_msg = {}
-            if error.error_msg:
-                try:
-                    parsed_error_msg = json.loads(error.error_msg.split("HTTP response body: ", 1)[-1])
-                except (json.JSONDecodeError, IndexError):
-                    parsed_error_msg = {"raw_error_msg": error.error_msg}
-
-            # 중요한 정보만 추출
-            simplified_error_msg = {
-                "status": parsed_error_msg.get("status", "Unknown"),
-                "message": parsed_error_msg.get("message", "No message provided"),
-                "reason": parsed_error_msg.get("reason", "Unknown"),
-                "code": parsed_error_msg.get("code", "Unknown"),
-                "details": parsed_error_msg.get("details", {}),
-            }
-
             # 로깅
             self.logger.error(
                 "Application Error",
                 extra={
                     "tags": {
                         "error_type": str(error.error_type.value),
-                        "status_code": error.status_code,
                         "request_id": request.headers.get('X-Request-ID', 'unknown') if request else 'unknown'
                     },
                     "content": {
                         "error_type": str(error.error_type.value),
                         "error_message": str(error.message),
-                        "error_details": simplified_error_msg,
+                        "error_msg": str(error.error_msg or ''),
+                        "status_code": error.status_code,
                     }
                 }
             )
@@ -180,8 +177,6 @@ class FlaskApp:
             # 로깅 중 오류 발생 시 기본 로깅
             print(f"[DEBUG] Logging error: {log_error}", file=sys.stderr)
             self.logger.error(f"Error logging failed: {str(log_error)}")
-
-
 
     def run(self, **kwargs):
         """애플리케이션 실행"""

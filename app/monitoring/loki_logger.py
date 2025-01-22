@@ -16,57 +16,23 @@ class FlaskLokiLogger:
     
     def _setup_logger(self, loki_url: str) -> logging.Logger:
         """Loki 로거 설정"""
+        tags = {
+            "app": self.app_name
+        }
         
         handler = LokiHandler(
             url=loki_url,
+            tags=tags,
             version="1",
         )
         
         handler.setFormatter(LokiJsonFormatter())
         async_handler = AsyncHandler(handler)
         logger = logging.getLogger(self.app_name)
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG)
         logger.addHandler(async_handler)
         return logger
     
-    def log_info(self, message: str, labels: dict = None, content: dict = None):
-        """
-        INFO 레벨 로깅 메서드
-
-        Args:
-            message (str): 로깅할 메시지
-            labels (dict, optional): 로그 인덱싱을 위한 라벨
-            content (dict, optional): 추가 로그 컨텍스트 정보
-        """
-        try:
-            # 기본 labels 설정
-            default_labels = {
-                "app": self.app_name,
-                "level": "INFO"
-            }
-
-            # 제공된 labels와 병합
-            if labels:
-                default_labels.update(labels)
-
-            # 기본 content 설정
-            default_content = {
-                "message": message
-            }
-
-            # 제공된 content와 병합
-            if content:
-                default_content.update(content)
-
-            self.logger.info(
-                message,
-                extra={
-                    "labels": default_labels,
-                    "content": default_content
-                }
-            )
-        except Exception as e:
-            print(f"Logging error: {e}", file=sys.stderr)
     
 
 class LokiJsonFormatter(logging.Formatter):
@@ -76,14 +42,13 @@ class LokiJsonFormatter(logging.Formatter):
             timestamp_ns = str(int(time.time() * 1e9))
             
             # record에서 직접 labels와 content 추출
-            labels = getattr(record, 'labels', {})
+            # tags = getattr(record, 'tags', {})
             content = getattr(record, 'content', {})
             
             # 기본 로그 정보 추가
             base_content = {
-                "level": record.levelname,
                 "message": record.getMessage(),
-                "logger": record.name
+                "level": record.levelname,
             }
             
             # 예외 정보 추가 (있는 경우)
@@ -93,6 +58,7 @@ class LokiJsonFormatter(logging.Formatter):
                     "message": str(record.exc_info[1]),
                     "traceback": traceback.format_exception(*record.exc_info)
                 }
+                
             
             # content에 기본 로그 정보 병합
             full_content = {**base_content, **content}
@@ -100,7 +66,6 @@ class LokiJsonFormatter(logging.Formatter):
             # 로그 구조 생성
             log_entry = {
                 "timestamp": timestamp_ns,
-                "labels": labels,
                 "content": full_content
             }
             
@@ -119,3 +84,22 @@ class LokiJsonFormatter(logging.Formatter):
                 }
             }
             return json.dumps(fallback_entry)
+    
+    def _serialize_dict(self, data, max_depth=3, current_depth=0):
+        """재귀적으로 dict을 직렬화"""
+        if current_depth >= max_depth:
+            return "<Max depth reached>"
+        if isinstance(data, dict):
+            return {
+                key: self._serialize_dict(value, max_depth, current_depth + 1)
+                for key, value in data.items()
+            }
+        elif isinstance(data, (list, tuple, set)):
+            return [
+                self._serialize_dict(item, max_depth, current_depth + 1)
+                for item in data
+            ]
+        elif hasattr(data, "__dict__"):
+            return self._serialize_dict(data.__dict__, max_depth, current_depth + 1)
+        else:
+            return data
