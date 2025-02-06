@@ -34,7 +34,7 @@ class MariaDBConfig:
             str: MariaDB 연결을 위한 SQLAlchemy 형식의 연결 문자열
                  예시: mysql+mysqlconnector://user:pass@host:port/dbname?charset=utf8mb4
         """
-        return (f"mysql+mysqlconnector://{self.username}:{self.password}@"
+        return (f"mariadb+mariadbconnector://{self.username}:{self.password}@"
                 f"{self.host}:{self.port}/{self.database}?"
                 f"charset={self.charset}")
 
