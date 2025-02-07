@@ -1,4 +1,5 @@
 import os
+import re
 import time
 
 from kubernetes import client, config
@@ -133,7 +134,7 @@ class K8sClient:
         return endpoint
         
         
-    def _normalize_k8s_name(name: str) -> str:
+    def _normalize_k8s_name(self, name: str) -> str:
         """
         Kubernetes 리소스 이름을 유효한 형식으로 변환 (소문자 + 공백을 하이픈으로 변경)
 
