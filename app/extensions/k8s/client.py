@@ -56,6 +56,7 @@ class K8sClient:
         if not challenge_definition:
             raise ChallengeNotFound(error_msg=f"Challenge definition not found for ID: {challenge_id}")
 
+        username = username.lower() # 소문자로 변환
         # Challenge name 생성 및 검증
         challenge_name = f"challenge-{challenge_id}-{username}"
         if not self._is_valid_k8s_name(challenge_name):
