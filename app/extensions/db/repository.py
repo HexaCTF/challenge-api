@@ -53,7 +53,7 @@ class UserChallengesRepository:
         """
         user_challenge = UserChallenges.query.filter_by(userChallengeName=userChallengeName).first()
         if not user_challenge:
-            raise InternalServerError(error_msg=f"User challenge {userChallengeName} not found")
+            return None
         return user_challenge
         
 

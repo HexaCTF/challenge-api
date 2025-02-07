@@ -48,13 +48,15 @@ class MessageHandler:
         """
         try:
             username, challenge_id, new_status, _ = MessageHandler.validate_message(message)
-            
+            username = username.lower() # 소문자로 변환
             challenge_name = challenge_name = f"challenge-{challenge_id}-{username}"
             
             # 상태 정보 업데이트
             repo = UserChallengesRepository()
-            challenge = repo.get_by_user_challenge_name(challenge_name)
-            success = repo.update_status(challenge, new_status)
+            user_challenge = repo.get_by_user_challenge_name(challenge_name)
+            if user_challenge is None:
+                repo.create(username, challenge_id, challenge_name, 0, new_status)
+            success = repo.update_status(user_challenge, new_status)
             if not success:
                 raise QueueProcessingError(error_msg=f"Kafka Error : Failed to update challenge status: {challenge_name}")
         
