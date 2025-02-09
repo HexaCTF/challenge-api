@@ -1,8 +1,6 @@
-FROM python:3.10-slim-bullseye
+FROM python:3.9-slim
 
-RUN sed -i 's|http://deb.debian.org|http://ftp.debian.org|' /etc/apt/sources.list
-
-RUN apt update && apt install -y \
+RUN apt-get update && apt-get install -y \
     python3-dev \
     libmariadb3 \
     libmariadb-dev \
