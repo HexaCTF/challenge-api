@@ -48,8 +48,7 @@ class MessageHandler:
         """
         try:
             username, challenge_id, new_status, _ = MessageHandler.validate_message(message)
-            username = username.lower() # 소문자로 변환
-            challenge_name = challenge_name = f"challenge-{challenge_id}-{username}"
+            challenge_name = challenge_name = f"challenge-{challenge_id}-{username.lower()}"
             
             # 상태 정보 업데이트
             repo = UserChallengesRepository()

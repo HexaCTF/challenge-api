@@ -32,7 +32,7 @@ class K8sClient:
         self.core_api = client.CoreV1Api()
 
     
-    def create_challenge_resource(self, challenge_id, username, namespace="ctf") -> int:
+    def create_challenge_resource(self, challenge_id, username, namespace="default") -> int:
         """
         Challenge Custom Resource를 생성하고 NodePort를 반환합니다.
         
@@ -187,7 +187,7 @@ class K8sClient:
         pattern = r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
         return bool(re.match(pattern, name))
     
-    def delete_userchallenge(self, username, challenge_id, namespace="ctf"):
+    def delete_userchallenge(self, username, challenge_id, namespace="default"):
         """
         Challenge Custom Resource를 삭제합니다.
         
@@ -201,8 +201,7 @@ class K8sClient:
         """
         
         # UserChallenge 조회 
-        username = username.lower() # 소문자로 변환
-        challenge_name = f"challenge-{challenge_id}-{username}"
+        challenge_name = f"challenge-{challenge_id}-{username.lower()}"
         user_challenge_repo = UserChallengesRepository()
         user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
         if not user_challenge:
