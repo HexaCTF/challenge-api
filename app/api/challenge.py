@@ -77,7 +77,7 @@ def get_userchallenge_status():
 
         if 'username' not in res:
             raise InvalidRequest(error_msg="Required field 'username' is missing in request")
-        username = res['username']
+        username = res['username'].lower()
 
         # 사용자 챌린지 상태 조회
         repo = UserChallengesRepository()
