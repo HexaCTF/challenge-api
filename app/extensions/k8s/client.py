@@ -59,6 +59,7 @@ class K8sClient:
 
         # Challenge name 생성 및 검증
         challenge_name = f"challenge-{challenge_id}-{username.lower()}"
+        challenge_name = self._normalize_k8s_name(challenge_name)
         if not self._is_valid_k8s_name(challenge_name):
             raise UserChallengeCreationError(error_msg=f"Invalid challenge name: {challenge_name}")
 
@@ -202,6 +203,7 @@ class K8sClient:
         
         # UserChallenge 조회 
         challenge_name = f"challenge-{challenge_id}-{username.lower()}"
+        challenge_name = self._normalize_k8s_name(challenge_name)
         user_challenge_repo = UserChallengesRepository()
         user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
         if not user_challenge:
