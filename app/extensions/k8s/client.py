@@ -89,7 +89,7 @@ class K8sClient:
                 "name": challenge_name,
                 "labels": {
                     "apps.hexactf.io/challengeId": str(challenge_id),
-                    "apps.hexactf.io/user": username
+                    "apps.hexactf.io/user": username.lower()
                 }
             },
             "spec": {
