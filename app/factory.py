@@ -93,7 +93,7 @@ class FlaskApp:
                "remote_addr": request.remote_addr,
                "user_agent": request.user_agent.string,
                "request_id": request.headers.get('X-Request-ID', 'unknown'),
-               "request_body": request.get_json(silent=True) or request.data.decode('utf-8'),
+               "request_body": request.get_json(silent=True) or request.data.decode('utf-8')
            }
        except Exception as e:
            # 요청 컨텍스트 추출 실패 시 기본값

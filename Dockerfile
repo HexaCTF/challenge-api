@@ -1,5 +1,8 @@
 FROM python:3.9-slim
 
+ENV http_proxy=http:...
+ENV https_proxy=http:...
+
 RUN apt-get update && apt-get install -y \
     python3-dev \
     libmariadb3 \
