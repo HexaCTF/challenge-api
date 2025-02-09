@@ -1,5 +1,7 @@
 FROM python:3.10-slim-bullseye
 
+RUN sed -i 's|http://deb.debian.org|http://ftp.debian.org|' /etc/apt/sources.list
+
 RUN apt-get update && apt-get install -y \
     python3-dev \
     libmariadb3 \
