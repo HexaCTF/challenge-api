@@ -80,7 +80,7 @@ class K8sClient:
         
         # 공백의 경우 하이픈으로 변환
         challenge_definition = self._normalize_k8s_name(challenge_definition)
-        
+        valid_username = self._normalize_k8s_name(username)
         # Challenge manifest 생성
         challenge_manifest = {
             "apiVersion": "apps.hexactf.io/v1alpha1",
@@ -89,7 +89,7 @@ class K8sClient:
                 "name": challenge_name,
                 "labels": {
                     "apps.hexactf.io/challengeId": str(challenge_id),
-                    "apps.hexactf.io/user": username.lower()
+                    "apps.hexactf.io/user": valid_username
                 }
             },
             "spec": {
