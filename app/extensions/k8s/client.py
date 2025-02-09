@@ -32,7 +32,7 @@ class K8sClient:
         self.core_api = client.CoreV1Api()
 
     
-    def create_challenge_resource(self, challenge_id, username, namespace="default") -> int:
+    def create_challenge_resource(self, challenge_id, username, namespace="ctf") -> int:
         """
         Challenge Custom Resource를 생성하고 NodePort를 반환합니다.
         
@@ -57,9 +57,8 @@ class K8sClient:
         if not challenge_definition:
             raise ChallengeNotFound(error_msg=f"Challenge definition not found for ID: {challenge_id}")
 
-        username = username.lower() # 소문자로 변환
         # Challenge name 생성 및 검증
-        challenge_name = f"challenge-{challenge_id}-{username}"
+        challenge_name = f"challenge-{challenge_id}-{username.lower()}"
         if not self._is_valid_k8s_name(challenge_name):
             raise UserChallengeCreationError(error_msg=f"Invalid challenge name: {challenge_name}")
 
@@ -188,7 +187,7 @@ class K8sClient:
         pattern = r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
         return bool(re.match(pattern, name))
     
-    def delete_userchallenge(self, username, challenge_id, namespace="default"):
+    def delete_userchallenge(self, username, challenge_id, namespace="ctf"):
         """
         Challenge Custom Resource를 삭제합니다.
         
