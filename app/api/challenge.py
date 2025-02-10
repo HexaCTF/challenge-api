@@ -69,20 +69,22 @@ def get_userchallenge_status():
         # Challenge 관련 정보 가져오기
         res = request.get_json()
         if not res:
-            raise UserChallengeDeletionError(error_msg="Request body is empty or not valid JSON")
+            raise InvalidRequest(error_msg="Request body is empty or not valid JSON")
 
         if 'challenge_id' not in res:
             raise InvalidRequest(error_msg="Required field 'challenge_id' is missing in request")
+        
         challenge_id = res['challenge_id']
+        if not challenge_id:
+            raise InvalidRequest(error_msg="'challenge_id' is empty or not valid")
 
         if 'username' not in res:
             raise InvalidRequest(error_msg="Required field 'username' is missing in request")
-        
     
         username = res['username']
         if not username:
-            raise InvalidRequest(error_msg="Required field 'username' is missing in request")
-        
+            raise InvalidRequest(error_msg="'username' is empty or not valid")
+                
         # 사용자 챌린지 상태 조회
         repo = UserChallengesRepository()
         status = repo.get_status(challenge_id, username)
