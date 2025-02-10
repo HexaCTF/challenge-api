@@ -52,3 +52,4 @@ class ApiErrorTypes(str, Enum):
     INTERNAL_ERROR = "INTERNAL_ERROR"                 # 내부 서버 에러
     DATABASE_ERROR = "DATABASE_ERROR"                 # 데이터베이스 에러
     EXTERNAL_SERVICE_ERROR = "EXTERNAL_SERVICE_ERROR" # 외부 서비스 에러
+    INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"   # 서버 내부 에러
