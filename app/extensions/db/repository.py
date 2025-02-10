@@ -1,7 +1,5 @@
 
 import logging
-from sqlite3 import OperationalError
-import time
 from typing import List, Optional
 from sqlalchemy.exc import SQLAlchemyError
 from app.exceptions.api import InternalServerError
@@ -92,31 +90,16 @@ class UserChallengesRepository:
         Returns:
             bool: 업데이트 성공 여부
         """
-        max_retries = 3  # 최대 3번 재시도
-        for attempt in range(max_retries):
-            try:
-                with self.session.begin_nested():  # 명확한 트랜잭션 관리
-                    locked_challenge = (
-                        self.session.query(UserChallenges)
-                        .filter_by(idx=challenge.idx)
-                        .with_for_update(nowait=True)  # 다른 트랜잭션이 잠근 경우 즉시 실패
-                        .one()
-                    )
-                    locked_challenge.port = port
-                    self.session.commit()
-                    return True  # 업데이트 성공 시 반환
+        try:
+            challenge.port = port
+            self.session.add(challenge)
+            self.session.flush() 
+            self.session.commit()
+            return True
+        except SQLAlchemyError as e:
+            self.session.rollback()
+            raise InternalServerError(error_msg=f"Error updating challenge port: {e}") from e
 
-            except OperationalError as e:  # 트랜잭션 충돌 발생 시
-                self.session.rollback()
-                if attempt < max_retries - 1:
-                    time.sleep(2)  # 다음 시도를 위해 2초 대기
-                else:
-                    raise InternalServerError(error_msg=f"Error updating challenge port after {max_retries} attempts: {e}") from e
-
-            except SQLAlchemyError as e:
-                self.session.rollback()
-                raise InternalServerError(error_msg=f"Error updating challenge port: {e}") from e
-    
     def is_running(self, challenge: UserChallenges) -> bool:
         """
         챌린지 실행 여부 확인
