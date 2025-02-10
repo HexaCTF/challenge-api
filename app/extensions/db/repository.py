@@ -121,7 +121,6 @@ class UserChallengesRepository:
         Returns:
             str: 챌린지 상태
         """
-        username = username.lower()
         challenge = UserChallenges.query.filter_by(C_idx=challenge_id, username=username).first()
         return challenge.status if challenge else None
 
