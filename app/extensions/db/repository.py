@@ -91,7 +91,8 @@ class UserChallengesRepository:
             bool: 업데이트 성공 여부
         """
         try:
-            challenge.port = port
+            locked_challenge = self.session.query(UserChallenges).filter_by(idx=challenge.idx).with_for_update().one()
+            locked_challenge.port = port
             self.session.commit()
             return True
         except SQLAlchemyError as e:
