@@ -92,4 +92,4 @@ def get_userchallenge_status():
             raise UserChallengeNotFoundError(error_msg=f"User challenge not found for {username} and {challenge_id}")
         return jsonify({'data': {'status': status}}), 200
     except Exception as e:
-        raise UserChallengeNotFoundError(error_msg=str(e)) from e
+        raise UserChallengeNotFoundError(error_msg=str(e))
