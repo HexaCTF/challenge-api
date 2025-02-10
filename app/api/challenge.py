@@ -68,6 +68,7 @@ def get_userchallenge_status():
     try:
         # Challenge 관련 정보 가져오기
         res = request.get_json()
+        print(res,file=sys.stderr)
         if not res:
             raise InvalidRequest(error_msg="Request body is empty or not valid JSON")
 
