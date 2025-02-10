@@ -1,7 +1,6 @@
 import os
 import re
 import time
-import sys
 
 from kubernetes import client, config
 
@@ -32,25 +31,27 @@ class K8sClient:
         self.custom_api = client.CustomObjectsApi()
         self.core_api = client.CoreV1Api()
 
+    
     def create_challenge_resource(self, challenge_id, username, namespace="default") -> int:
         """
         Challenge Custom Resource를 생성하고 NodePort를 반환합니다.
-
+        
         Args:
             challenge_id (str): 생성할 Challenge의 ID
             username (str): Challenge를 생성하는 사용자 이름
             namespace (str): Challenge를 생성할 네임스페이스 (기본값: "default")
-
+            
         Returns:
             int: 할당된 NodePort 번호
-
+            
         Raises:
             ChallengeNotFound: Challenge ID에 해당하는 Challenge가 없을 때
             ChallengeCreationError: Challenge Custom Resource 생성에 실패했을 때
+
         """
-
+        
         user_challenge_repo = UserChallengesRepository()
-
+            
         # Challenge definition 조회
         challenge_definition = ChallengeRepository.get_challenge_name(challenge_id)
         if not challenge_definition:
@@ -67,8 +68,8 @@ class K8sClient:
             self.core_api.read_namespace(namespace)
         except Exception as e:
             raise UserChallengeCreationError(error_msg=str(e))
-
-        # Database에 UserChallenge 생성
+            
+        # Database에 UserChallenge 생성 
         user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
         if not user_challenge:
             user_challenge = user_challenge_repo.create(username, challenge_id, challenge_name, 0)
@@ -76,8 +77,11 @@ class K8sClient:
             # 이미 실행 중인 Challenge가 있으면 데이터베이스에 저장된 포트 번호 반환
             if user_challenge.status == 'Running':
                 return user_challenge.port
-
-        # Kubernetes Challenge Custom Resource 생성
+        
+        # 공백의 경우 하이픈으로 변환
+        challenge_definition = self._normalize_k8s_name(challenge_definition)
+        valid_username = self._normalize_k8s_name(username)
+        # Challenge manifest 생성
         challenge_manifest = {
             "apiVersion": "apps.hexactf.io/v1alpha1",
             "kind": "Challenge",
@@ -85,7 +89,7 @@ class K8sClient:
                 "name": challenge_name,
                 "labels": {
                     "apps.hexactf.io/challengeId": str(challenge_id),
-                    "apps.hexactf.io/user": username
+                    "apps.hexactf.io/user": valid_username
                 }
             },
             "spec": {
@@ -93,8 +97,8 @@ class K8sClient:
                 "definition": challenge_definition
             }
         }
-
-        self.custom_api.create_namespaced_custom_object(
+            
+        challenge = self.custom_api.create_namespaced_custom_object(
             group="apps.hexactf.io",
             version="v1alpha1",
             namespace=namespace,
@@ -102,151 +106,33 @@ class K8sClient:
             body=challenge_manifest
         )
 
-        # `status.endpoint`가 업데이트될 때까지 재시도
-        max_retries = 10  # 재시도 횟수를 증가
-        endpoint = None
+        time.sleep(5)
+        # status 값 가져오기
+        status = challenge.get('status', {})
+        endpoint = status.get('endpoint')
 
-        for i in range(max_retries):
-            time.sleep(3)  # 첫 번째 요청이 실패하는 경우, 충분한 대기 시간을 설정
+        # status가 아직 설정되지 않았을 수 있으므로, 필요한 경우 다시 조회
+        if not status:
+            time.sleep(3)  
             challenge = self.custom_api.get_namespaced_custom_object(
                 group="apps.hexactf.io",
                 version="v1alpha1",
                 namespace=namespace,
                 plural="challenges",
-                name=challenge_name
+                name=challenge['metadata']['name']
             )
             status = challenge.get('status', {})
             endpoint = status.get('endpoint')
-
-            if endpoint:
-                print(f"Challenge {challenge_name} received endpoint: {endpoint}", file=sys.stderr)
-                break
-            else:
-                print(f"Retry {i + 1}/{max_retries}: Waiting for Challenge {challenge_name} to get an endpoint...", file=sys.stderr)
-
+        
+        # NodePort 업데이트
         if not endpoint:
             raise UserChallengeCreationError(error_msg=f"Failed to get NodePort for Challenge: {challenge_name}")
-
-        # NodePort 업데이트 (트랜잭션 충돌 방지)
-        success = False
-        retry_count = 3
-
-        for i in range(retry_count):
-            try:
-                success = user_challenge_repo.update_port(user_challenge, int(endpoint))
-                if success:
-                    break
-            except Exception as e:
-                print(f"Failed to update UserChallenge with NodePort: {endpoint}", file=sys.stderr)
-                time.sleep(2)  # DB 충돌이 발생할 경우 재시도
-
+        
+        success = user_challenge_repo.update_port(user_challenge, int(endpoint))
         if not success:
             raise UserChallengeCreationError(error_msg=f"Failed to update UserChallenge with NodePort: {endpoint}")
-
+    
         return endpoint
-
-    
-    # def create_challenge_resource(self, challenge_id, username, namespace="default") -> int:
-    #     """
-    #     Challenge Custom Resource를 생성하고 NodePort를 반환합니다.
-        
-    #     Args:
-    #         challenge_id (str): 생성할 Challenge의 ID
-    #         username (str): Challenge를 생성하는 사용자 이름
-    #         namespace (str): Challenge를 생성할 네임스페이스 (기본값: "default")
-            
-    #     Returns:
-    #         int: 할당된 NodePort 번호
-            
-    #     Raises:
-    #         ChallengeNotFound: Challenge ID에 해당하는 Challenge가 없을 때
-    #         ChallengeCreationError: Challenge Custom Resource 생성에 실패했을 때
-
-    #     """
-        
-    #     user_challenge_repo = UserChallengesRepository()
-            
-    #     # Challenge definition 조회
-    #     challenge_definition = ChallengeRepository.get_challenge_name(challenge_id)
-    #     if not challenge_definition:
-    #         raise ChallengeNotFound(error_msg=f"Challenge definition not found for ID: {challenge_id}")
-
-    #     # Challenge name 생성 및 검증
-    #     challenge_name = f"challenge-{challenge_id}-{username.lower()}"
-    #     challenge_name = self._normalize_k8s_name(challenge_name)
-    #     if not self._is_valid_k8s_name(challenge_name):
-    #         raise UserChallengeCreationError(error_msg=f"Invalid challenge name: {challenge_name}")
-
-    #     # Namespace 존재 여부 확인
-    #     try:
-    #         self.core_api.read_namespace(namespace)
-    #     except Exception as e:
-    #         raise UserChallengeCreationError(error_msg=str(e))
-            
-    #     # Database에 UserChallenge 생성 
-    #     user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
-    #     if not user_challenge:
-    #         user_challenge = user_challenge_repo.create(username, challenge_id, challenge_name, 0)
-    #     else:
-    #         # 이미 실행 중인 Challenge가 있으면 데이터베이스에 저장된 포트 번호 반환
-    #         if user_challenge.status == 'Running':
-    #             return user_challenge.port
-        
-    #     # 공백의 경우 하이픈으로 변환
-    #     challenge_definition = self._normalize_k8s_name(challenge_definition)
-    #     valid_username = self._normalize_k8s_name(username)
-    #     # Challenge manifest 생성
-    #     challenge_manifest = {
-    #         "apiVersion": "apps.hexactf.io/v1alpha1",
-    #         "kind": "Challenge",
-    #         "metadata": {
-    #             "name": challenge_name,
-    #             "labels": {
-    #                 "apps.hexactf.io/challengeId": str(challenge_id),
-    #                 "apps.hexactf.io/user": valid_username
-    #             }
-    #         },
-    #         "spec": {
-    #             "namespace": namespace,
-    #             "definition": challenge_definition
-    #         }
-    #     }
-            
-    #     challenge = self.custom_api.create_namespaced_custom_object(
-    #         group="apps.hexactf.io",
-    #         version="v1alpha1",
-    #         namespace=namespace,
-    #         plural="challenges",
-    #         body=challenge_manifest
-    #     )
-
-    #     # status 값 가져오기
-    #     status = challenge.get('status', {})
-    #     endpoint = status.get('endpoint')
-
-    #     max_retries = 5
-    #     for _ in range(max_retries):
-    #         time.sleep(3)  
-    #         challenge = self.custom_api.get_namespaced_custom_object(
-    #             group="apps.hexactf.io",
-    #             version="v1alpha1",
-    #             namespace=namespace,
-    #             plural="challenges",
-    #             name=challenge['metadata']['name']
-    #         )
-    #         status = challenge.get('status', {})
-    #         endpoint = status.get('endpoint')
-
-    #         if endpoint:
-    #             break
-    #     else:
-    #         raise UserChallengeCreationError(error_msg=f"Failed to get NodePort for Challenge: {challenge_name}")
-
-    #     success = user_challenge_repo.update_port(user_challenge, int(endpoint))
-    #     if not success:
-    #         raise UserChallengeCreationError(error_msg=f"Failed to update UserChallenge with NodePort: {endpoint}")
-    
-    #     return endpoint
         
         
     def _normalize_k8s_name(self, name: str) -> str:
