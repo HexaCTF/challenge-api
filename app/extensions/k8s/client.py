@@ -110,8 +110,8 @@ class K8sClient:
         status = challenge.get('status', {})
         endpoint = status.get('endpoint')
 
-        # status가 아직 설정되지 않았을 수 있으므로, 필요한 경우 다시 조회
-        if not status:
+        max_retries = 5
+        for _ in range(max_retries):
             time.sleep(3)  
             challenge = self.custom_api.get_namespaced_custom_object(
                 group="apps.hexactf.io",
@@ -122,11 +122,12 @@ class K8sClient:
             )
             status = challenge.get('status', {})
             endpoint = status.get('endpoint')
-        
-        # NodePort 업데이트
-        if not endpoint:
+
+            if endpoint:
+                break
+        else:
             raise UserChallengeCreationError(error_msg=f"Failed to get NodePort for Challenge: {challenge_name}")
-        
+
         success = user_challenge_repo.update_port(user_challenge, int(endpoint))
         if not success:
             raise UserChallengeCreationError(error_msg=f"Failed to update UserChallenge with NodePort: {endpoint}")
