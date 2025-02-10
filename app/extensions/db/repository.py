@@ -71,8 +71,8 @@ class UserChallengesRepository:
         """
         try:
             challenge.status = new_status
-            self.session.add(challenge)  # Add this line to track the object
-            self.session.flush()  
+            # self.session.add(challenge)  # Add this line to track the object
+            # self.session.flush()  
             self.session.commit()
             return True
         except SQLAlchemyError as e:
