@@ -119,10 +119,10 @@ class K8sClient:
             endpoint = status.get('endpoint')
 
             if endpoint:
-                logging.info(f"Challenge {challenge_name} received endpoint: {endpoint}")
+                print(f"Challenge {challenge_name} received endpoint: {endpoint}", file=sys.stderr)
                 break
             else:
-                logging.warning(f"Retry {i + 1}/{max_retries}: Waiting for Challenge {challenge_name} to get an endpoint...")
+                print(f"Retry {i + 1}/{max_retries}: Waiting for Challenge {challenge_name} to get an endpoint...", file=sys.stderr)
 
         if not endpoint:
             raise UserChallengeCreationError(error_msg=f"Failed to get NodePort for Challenge: {challenge_name}")
