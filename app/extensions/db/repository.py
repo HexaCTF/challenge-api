@@ -38,6 +38,7 @@ class UserChallengesRepository:
             self.session.commit()
             return challenge
         except SQLAlchemyError as e:
+            
             self.session.rollback()
             raise InternalServerError(error_msg=f"Error creating challenge in db: {e}") from e
 
@@ -70,14 +71,16 @@ class UserChallengesRepository:
         """
         try:
             challenge.status = new_status
-            self.session.add(challenge)  # Add this line to track the object
-            self.session.flush()  
+            # self.session.add(challenge)  # Add this line to track the object
+            # self.session.flush()  
             self.session.commit()
             return True
         except SQLAlchemyError as e:
             # logger.error(f"Error updating challenge status: {e}")
+
             self.session.rollback()
             raise InternalServerError(error_msg=f"Error updating challenge status: {e}") from e
+
 
     def update_port(self, challenge: UserChallenges, port: int) -> bool:
         """
@@ -91,12 +94,18 @@ class UserChallengesRepository:
             bool: 업데이트 성공 여부
         """
         try:
-            challenge.port = port
+            # 1) 먼저 challenge 객체를 세션에 맞게 merge
+            fresh_challenge = self.session.merge(challenge)
+
+            # 2) merge된 객체에 port 갱신
+            fresh_challenge.port = port
+
             self.session.commit()
             return True
         except SQLAlchemyError as e:
             self.session.rollback()
             raise InternalServerError(error_msg=f"Error updating challenge port: {e}") from e
+
 
     def is_running(self, challenge: UserChallenges) -> bool:
         """

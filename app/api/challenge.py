@@ -1,5 +1,6 @@
 from json import JSONDecodeError
 from logging import log
+import sys
 from app.monitoring.ctf_metrics_collector import ChallengeMetricsCollector
 from flask import Blueprint, jsonify, request
 
@@ -30,7 +31,7 @@ def create_challenge():
     client = K8sClient()
     endpoint = client.create_challenge_resource(challenge_id, username)
     if not endpoint:
-        raise  UserChallengeCreationError(error_msg=f"Failed to create challenge {challenge_id} for user {username}")
+        raise  UserChallengeCreationError(error_msg=f"Failed to create challenge {challenge_id} for user {username} : Endpoint did not exist")
     
     return jsonify({'data' : {'port': endpoint}}), 200
 
@@ -68,21 +69,24 @@ def get_userchallenge_status():
     try:
         # Challenge 관련 정보 가져오기
         res = request.get_json()
+        print(f"/status : {res}",file=sys.stderr)
         if not res:
-            raise UserChallengeDeletionError(error_msg="Request body is empty or not valid JSON")
+            raise InvalidRequest(error_msg="Request body is empty or not valid JSON")
 
         if 'challenge_id' not in res:
             raise InvalidRequest(error_msg="Required field 'challenge_id' is missing in request")
+        
         challenge_id = res['challenge_id']
+        if not challenge_id:
+            raise InvalidRequest(error_msg="'challenge_id' is empty or not valid")
 
         if 'username' not in res:
             raise InvalidRequest(error_msg="Required field 'username' is missing in request")
-        
     
         username = res['username']
         if not username:
-            raise InvalidRequest(error_msg="Required field 'username' is missing in request")
-        
+            raise InvalidRequest(error_msg="'username' is empty or not valid")
+                
         # 사용자 챌린지 상태 조회
         repo = UserChallengesRepository()
         status = repo.get_status(challenge_id, username)
@@ -90,4 +94,4 @@ def get_userchallenge_status():
             raise UserChallengeNotFoundError(error_msg=f"User challenge not found for {username} and {challenge_id}")
         return jsonify({'data': {'status': status}}), 200
     except Exception as e:
-        raise UserChallengeNotFoundError(error_msg=str(e)) from e
+        raise UserChallengeNotFoundError(error_msg=str(e))

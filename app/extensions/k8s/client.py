@@ -106,6 +106,7 @@ class K8sClient:
             body=challenge_manifest
         )
 
+        time.sleep(5)
         # status 값 가져오기
         status = challenge.get('status', {})
         endpoint = status.get('endpoint')
