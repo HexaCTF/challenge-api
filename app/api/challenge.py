@@ -1,5 +1,6 @@
 from json import JSONDecodeError
 from logging import log
+import sys
 from app.monitoring.ctf_metrics_collector import ChallengeMetricsCollector
 from flask import Blueprint, jsonify, request
 
