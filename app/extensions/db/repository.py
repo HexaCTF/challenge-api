@@ -97,7 +97,8 @@ class UserChallengesRepository:
             # 1) 먼저 challenge 객체를 세션에 맞게 merge
             fresh_challenge = self.session.merge(challenge)
 
-            # 2) merge된 객체에 port 갱신
+            fresh_challenge = self.session.merge(challenge)
+            self.session.refresh(fresh_challenge)  # Ensure fresh data
             fresh_challenge.port = port
 
             self.session.commit()
