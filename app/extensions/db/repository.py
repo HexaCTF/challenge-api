@@ -38,12 +38,9 @@ class UserChallengesRepository:
             self.session.commit()
             return challenge
         except SQLAlchemyError as e:
-            if self.session:
-                self.session.rollback()
+            
+            self.session.rollback()
             raise InternalServerError(error_msg=f"Error creating challenge in db: {e}") from e
-        finally:
-            if self.session:
-                self.session.close()
 
     def get_by_user_challenge_name(self, userChallengeName: str) -> Optional[UserChallenges]:
         """
@@ -80,12 +77,10 @@ class UserChallengesRepository:
             return True
         except SQLAlchemyError as e:
             # logger.error(f"Error updating challenge status: {e}")
-            if self.session:
-                self.session.rollback()
+
+            self.session.rollback()
             raise InternalServerError(error_msg=f"Error updating challenge status: {e}") from e
-        finally:
-            if self.session:
-                self.session.close()
+
 
     def update_port(self, challenge: UserChallenges, port: int) -> bool:
         """
@@ -98,18 +93,15 @@ class UserChallengesRepository:
         Returns:
             bool: 업데이트 성공 여부
         """
+        challenge.port = port
         try:
-            challenge.port = port
-            self.session.add(challenge)
+            # self.session.add(challenge)
             self.session.commit()
             return True
         except SQLAlchemyError as e:
-            if self.session:
-                self.session.rollback()
+            self.session.rollback()
             raise InternalServerError(error_msg=f"Error updating challenge port: {e}") from e
-        finally:
-            if self.session:
-                self.session.close()
+
 
     def is_running(self, challenge: UserChallenges) -> bool:
         """
