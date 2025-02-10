@@ -93,9 +93,13 @@ class UserChallengesRepository:
         Returns:
             bool: 업데이트 성공 여부
         """
-        challenge.port = port
         try:
-            # self.session.add(challenge)
+            # 1) 먼저 challenge 객체를 세션에 맞게 merge
+            fresh_challenge = self.session.merge(challenge)
+
+            # 2) merge된 객체에 port 갱신
+            fresh_challenge.port = port
+
             self.session.commit()
             return True
         except SQLAlchemyError as e:
