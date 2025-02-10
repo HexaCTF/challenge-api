@@ -30,7 +30,7 @@ def create_challenge():
     client = K8sClient()
     endpoint = client.create_challenge_resource(challenge_id, username)
     if not endpoint:
-        raise  UserChallengeCreationError(error_msg=f"Failed to create challenge {challenge_id} for user {username}")
+        raise  UserChallengeCreationError(error_msg=f"Failed to create challenge {challenge_id} for user {username} : Endpoint did not exist")
     
     return jsonify({'data' : {'port': endpoint}}), 200
 

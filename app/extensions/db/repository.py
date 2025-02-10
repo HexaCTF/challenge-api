@@ -93,7 +93,6 @@ class UserChallengesRepository:
         try:
             challenge.port = port
             self.session.add(challenge)
-            self.session.flush() 
             self.session.commit()
             return True
         except SQLAlchemyError as e:
