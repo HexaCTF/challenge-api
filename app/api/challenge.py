@@ -69,7 +69,7 @@ def get_userchallenge_status():
     try:
         # Challenge 관련 정보 가져오기
         res = request.get_json()
-        print(f"/status : {res}",file=sys.stderr)
+        # print(f"/status : {res}",file=sys.stderr)
         if not res:
             raise InvalidRequest(error_msg="Request body is empty or not valid JSON")
 
@@ -89,9 +89,9 @@ def get_userchallenge_status():
                 
         # 사용자 챌린지 상태 조회
         repo = UserChallengesRepository()
-        status = repo.get_status(challenge_id, username)
-        if status is None:
+        status_dict = repo.get_status(challenge_id, username)
+        if status_dict is None:
             raise UserChallengeNotFoundError(error_msg=f"User challenge not found for {username} and {challenge_id}")
-        return jsonify({'data': {'status': status}}), 200
+        return jsonify({'data': status_dict}), 200
     except Exception as e:
         raise UserChallengeNotFoundError(error_msg=str(e))

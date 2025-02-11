@@ -120,7 +120,7 @@ class UserChallengesRepository:
         """
         return challenge.status == 'Running'
 
-    def get_status(self, challenge_id, username) -> Optional[str]:
+    def get_status(self, challenge_id, username)  -> Optional[dict]:
         """
         챌린지 상태 조회
         
@@ -132,7 +132,13 @@ class UserChallengesRepository:
             str: 챌린지 상태
         """
         challenge = UserChallenges.query.filter_by(C_idx=challenge_id, username=username).first()
-        return challenge.status if challenge else None
+        if not challenge:
+            return None
+    
+        if challenge.status == 'Running':
+            return {'status': challenge.status, 'port': int(challenge.port)}
+        return {'status': challenge.status}
+        
 
 class ChallengeRepository:
     @staticmethod
