@@ -109,7 +109,7 @@ class UserChallengesRepository:
             self.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
 
             # Acquire a lock on the row to prevent race conditions
-            fresh_challenge = self.session.query(UserChallenges).with_for_update().filter_by(id=challenge.id).one()
+            fresh_challenge = self.session.query(UserChallenges).with_for_update().filter_by(userChallengeName=challenge.userChallengeName).one()
 
             # Update the port
             fresh_challenge.port = port
