@@ -70,7 +70,11 @@ class UserChallengesRepository:
             bool: 업데이트 성공 여부
         """
         try:
-            challenge.status = new_status
+            fresh_challenge = self.session.merge(challenge)
+
+            fresh_challenge = self.session.merge(challenge)
+            self.session.refresh(fresh_challenge) 
+            fresh_challenge.status = new_status
             # self.session.add(challenge)  # Add this line to track the object
             # self.session.flush()  
             self.session.commit()
