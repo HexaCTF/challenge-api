@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.exceptions.api import InternalServerError
 from app.extensions_manager import db
 from app.extensions.db.models import Challenges, UserChallenges
-
+from sqlalchemy.sql import text
 
 class UserChallengesRepository:
     def __init__(self, session=None):
@@ -106,11 +106,11 @@ class UserChallengesRepository:
 
             # self.session.commit()
                     # Set session isolation level to avoid stale reads
-            self.session.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
-    
+            self.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
+
             # Acquire a lock on the row to prevent race conditions
             fresh_challenge = self.session.query(UserChallenges).with_for_update().filter_by(id=challenge.id).one()
-    
+
             # Update the port
             fresh_challenge.port = port
             self.session.commit()
