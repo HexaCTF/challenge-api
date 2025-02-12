@@ -99,12 +99,20 @@ class UserChallengesRepository:
         """
         try:
             # 1) 먼저 challenge 객체를 세션에 맞게 merge
-            fresh_challenge = self.session.merge(challenge)
+            # fresh_challenge = self.session.merge(challenge)
 
-            fresh_challenge = self.session.merge(challenge)
-            self.session.refresh(fresh_challenge)  # Ensure fresh data
+            # self.session.refresh(fresh_challenge)  # Ensure fresh data
+            # fresh_challenge.port = port
+
+            # self.session.commit()
+                    # Set session isolation level to avoid stale reads
+            self.session.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+    
+            # Acquire a lock on the row to prevent race conditions
+            fresh_challenge = self.session.query(UserChallenges).with_for_update().filter_by(id=challenge.id).one()
+    
+            # Update the port
             fresh_challenge.port = port
-
             self.session.commit()
             return True
         except SQLAlchemyError as e:
