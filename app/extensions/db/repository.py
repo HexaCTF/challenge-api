@@ -74,7 +74,6 @@ class UserChallengesRepository:
         try:
             db.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
             fresh_challenge = self.session.merge(challenge)
-            fresh_challenge = self.session.merge(challenge)
             self.session.refresh(fresh_challenge) 
             fresh_challenge.status = new_status
             # self.session.add(challenge)  # Add this line to track the object
@@ -100,10 +99,11 @@ class UserChallengesRepository:
             bool: 업데이트 성공 여부
         """
         try:
-            with db.session.begin():  # 트랜잭션 자동 관리
-                db.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
-                fresh_challenge = db.session.query(UserChallenges).with_for_update().filter_by(userChallengeName=challenge.userChallengeName).one()
-                fresh_challenge.port = port
+            db.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
+            fresh_challenge = self.session.merge(challenge)
+            self.session.refresh(fresh_challenge) 
+            fresh_challenge.status = port
+            self.session.commit()
             return True
         except SQLAlchemyError as e:
             db.session.rollback()
