@@ -48,7 +48,7 @@ class UserChallengesRepository:
         """사용자 챌린지 이름으로 조회 (DetachedInstanceError 방지)"""
         with self.get_session() as session:
             return session.query(UserChallenges) \
-                .options(load_only("status", "port")) \
+                .options(load_only(UserChallenges.status, UserChallenges.port)) \
                 .filter_by(userChallengeName=userChallengeName).first()
 
     def update_status(self, challenge: UserChallenges, new_status: str) -> bool:
@@ -93,7 +93,7 @@ class UserChallengesRepository:
         """챌린지 상태 조회"""
         with self.get_session() as session:
             challenge = session.query(UserChallenges) \
-                .options(load_only("status", "port")) \
+                .options(load_only(UserChallenges.status, UserChallenges.port)) \
                 .filter_by(C_idx=challenge_id, username=username).first()
             if not challenge:
                 return None
