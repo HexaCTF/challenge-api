@@ -1,11 +1,13 @@
-
 import logging
+from sqlite3 import OperationalError
 from typing import List, Optional
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, load_only
+from sqlalchemy.sql import text
+from contextlib import contextmanager
 from app.exceptions.api import InternalServerError
 from app.extensions_manager import db
 from app.extensions.db.models import Challenges, UserChallenges
-
 
 class UserChallengesRepository:
     def __init__(self, session=None):
@@ -70,7 +72,10 @@ class UserChallengesRepository:
             bool: 업데이트 성공 여부
         """
         try:
-            challenge.status = new_status
+            db.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
+            fresh_challenge = self.session.merge(challenge)
+            self.session.refresh(fresh_challenge) 
+            fresh_challenge.status = new_status
             # self.session.add(challenge)  # Add this line to track the object
             # self.session.flush()  
             self.session.commit()
@@ -94,20 +99,15 @@ class UserChallengesRepository:
             bool: 업데이트 성공 여부
         """
         try:
-            # 1) 먼저 challenge 객체를 세션에 맞게 merge
+            db.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
             fresh_challenge = self.session.merge(challenge)
-
-            fresh_challenge = self.session.merge(challenge)
-            self.session.refresh(fresh_challenge)  # Ensure fresh data
+            self.session.refresh(fresh_challenge) 
             fresh_challenge.port = port
-
             self.session.commit()
             return True
         except SQLAlchemyError as e:
-            self.session.rollback()
+            db.session.rollback()
             raise InternalServerError(error_msg=f"Error updating challenge port: {e}") from e
-
-
     def is_running(self, challenge: UserChallenges) -> bool:
         """
         챌린지 실행 여부 확인
@@ -120,7 +120,7 @@ class UserChallengesRepository:
         """
         return challenge.status == 'Running'
 
-    def get_status(self, challenge_id, username) -> Optional[str]:
+    def get_status(self, challenge_id, username)  -> Optional[dict]:
         """
         챌린지 상태 조회
         
@@ -132,8 +132,24 @@ class UserChallengesRepository:
             str: 챌린지 상태
         """
         challenge = UserChallenges.query.filter_by(C_idx=challenge_id, username=username).first()
-        return challenge.status if challenge else None
+        if not challenge:
+            return None
+    
+        if challenge.status == 'Running':
+            return {'status': challenge.status, 'port': int(challenge.port)}
+        return {'status': challenge.status}
+    
+# class ChallengeRepository:
+#     def __init__(self):
+#         self.db_session = db.session
 
+#     def get_challenge_name(self, challenge_id: int) -> Optional[str]:
+#         """챌린지 ID로 챌린지 조회"""
+#         with self.get_session() as session:
+#             challenge = session.query(Challenges).get(challenge_id)
+#             return challenge.title if challenge else None
+
+        
 class ChallengeRepository:
     @staticmethod
     def get_challenge_name(challenge_id: int) -> Optional[str]:
