@@ -72,7 +72,6 @@ class UserChallengesRepository:
             bool: 업데이트 성공 여부
         """
         try:
-            db.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
             fresh_challenge = self.session.merge(challenge)
             self.session.refresh(fresh_challenge) 
             fresh_challenge.status = new_status
@@ -99,7 +98,6 @@ class UserChallengesRepository:
             bool: 업데이트 성공 여부
         """
         try:
-            db.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
             fresh_challenge = self.session.merge(challenge)
             self.session.refresh(fresh_challenge) 
             fresh_challenge.status = port
