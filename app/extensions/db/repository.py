@@ -1,31 +1,34 @@
-
 import logging
 from typing import List, Optional
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
+from contextlib import contextmanager
 from app.exceptions.api import InternalServerError
 from app.extensions_manager import db
 from app.extensions.db.models import Challenges, UserChallenges
-from sqlalchemy.sql import text
 
 class UserChallengesRepository:
-    def __init__(self, session=None):
-        self.session = session or db.session
+    def __init__(self):
+        """세션을 직접 관리하는 Repository"""
+        self.db_session = db.session  # Flask-SQLAlchemy 세션
+
+    @contextmanager
+    def get_session(self) -> Session:
+        """독립적인 세션을 생성하고 자동 종료하는 컨텍스트 매니저"""
+        session = db.session()  # 새로운 세션 생성
+        try:
+            yield session  # 세션 제공
+            session.commit()  # 성공하면 커밋
+        except SQLAlchemyError as e:
+            session.rollback()  # 예외 발생 시 롤백
+            raise InternalServerError(error_msg=f"Database transaction failed: {e}") from e
+        finally:
+            session.close()  # 세션 종료
 
     def create(self, username: str, C_idx: int, userChallengeName: str,
                port: int, status: str = 'None') -> Optional[UserChallenges]:
-        """
-        새로운 사용자 챌린지 생성
-        
-        Args:
-            username (str): 사용자 이름
-            C_idx (int): 챌린지 ID
-            userChallengeName (str): 챌린지 이름
-            port (int): 챌린지 포트
-            status (str): 챌린지 상태
-        
-        Returns:
-            UserChallenges: 생성된 챌린지
-        """
+        """새로운 사용자 챌린지 생성"""
         try:
             challenge = UserChallenges(
                 username=username,
@@ -34,122 +37,66 @@ class UserChallengesRepository:
                 port=port,
                 status=status
             )
-            self.session.add(challenge)
-            self.session.commit()
+            with self.get_session() as session:
+                session.add(challenge)
             return challenge
         except SQLAlchemyError as e:
-            
-            self.session.rollback()
             raise InternalServerError(error_msg=f"Error creating challenge in db: {e}") from e
 
     def get_by_user_challenge_name(self, userChallengeName: str) -> Optional[UserChallenges]:
-        """
-        사용자 챌린지 이름 조회
-        
-        Args:
-            userChallengeName (str): 사용자 챌린지 이름
-        
-        Returns:
-            UserChallenges: 사용자 챌린지
-        """
-        user_challenge = UserChallenges.query.filter_by(userChallengeName=userChallengeName).first()
-        if not user_challenge:
-            return None
-        return user_challenge
-        
+        """사용자 챌린지 이름으로 조회"""
+        with self.get_session() as session:
+            return session.query(UserChallenges).filter_by(userChallengeName=userChallengeName).first()
 
     def update_status(self, challenge: UserChallenges, new_status: str) -> bool:
-        """
-        사용자 챌린지 상태 업데이트
-        
-        Args:
-            challenge (UserChallenges): 사용자 챌린지
-            new_status (str): 새로운 상태
-        
-        Returns:
-            bool: 업데이트 성공 여부
-        """
+        """사용자 챌린지 상태 업데이트"""
         try:
-            fresh_challenge = self.session.merge(challenge)
-
-            fresh_challenge = self.session.merge(challenge)
-            self.session.refresh(fresh_challenge) 
-            fresh_challenge.status = new_status
-            # self.session.add(challenge)  # Add this line to track the object
-            # self.session.flush()  
-            self.session.commit()
+            with self.get_session() as session:
+                fresh_challenge = session.merge(challenge)  # 세션과 동기화
+                session.refresh(fresh_challenge)
+                fresh_challenge.status = new_status
+                session.commit()
             return True
         except SQLAlchemyError as e:
-            # logger.error(f"Error updating challenge status: {e}")
-
-            self.session.rollback()
             raise InternalServerError(error_msg=f"Error updating challenge status: {e}") from e
 
-
     def update_port(self, challenge: UserChallenges, port: int) -> bool:
-        """
-        챌린지 포트 업데이트
-        
-        Args:
-            challenge (UserChallenges): 사용자 챌린지
-            port (int): 새로운 포트
-        
-        Returns:
-            bool: 업데이트 성공 여부
-        """
+        """챌린지 포트 업데이트"""
         try:
-            # 1) 먼저 challenge 객체를 세션에 맞게 merge
-            # fresh_challenge = self.session.merge(challenge)
+            with self.get_session() as session:
+                session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
 
-            # self.session.refresh(fresh_challenge)  # Ensure fresh data
-            # fresh_challenge.port = port
-
-            # self.session.commit()
-                    # Set session isolation level to avoid stale reads
-            self.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
-
-            # Acquire a lock on the row to prevent race conditions
-            fresh_challenge = self.session.query(UserChallenges).with_for_update().filter_by(userChallengeName=challenge.userChallengeName).one()
-
-            # Update the port
-            fresh_challenge.port = port
-            self.session.commit()
+                # `.with_for_update()`를 적용하여 동시 수정 방지
+                fresh_challenge = session.query(UserChallenges).with_for_update().filter_by(userChallengeName=challenge.userChallengeName).one()
+                fresh_challenge.port = port
+                session.commit()
             return True
         except SQLAlchemyError as e:
-            self.session.rollback()
             raise InternalServerError(error_msg=f"Error updating challenge port: {e}") from e
 
-
     def is_running(self, challenge: UserChallenges) -> bool:
-        """
-        챌린지 실행 여부 확인
-        
-        Args:
-            challenge (UserChallenges): 사용자 챌린지
-        
-        Returns:
-            bool: 챌린지 실행 여부
-        """
+        """챌린지 실행 여부 확인"""
         return challenge.status == 'Running'
 
-    def get_status(self, challenge_id, username)  -> Optional[dict]:
-        """
-        챌린지 상태 조회
-        
-        Args:
-            challenge_id (int): 챌린지 아이디
-            username (str): 사용자 이름
-        
-        Returns:
-            str: 챌린지 상태
-        """
-        challenge = UserChallenges.query.filter_by(C_idx=challenge_id, username=username).first()
-        if not challenge:
-            return None
-    
-        if challenge.status == 'Running':
-            return {'status': challenge.status, 'port': int(challenge.port)}
-        return {'status': challenge.status}
+    def get_status(self, challenge_id: int, username: str) -> Optional[dict]:
+        """챌린지 상태 조회"""
+        with self.get_session() as session:
+            challenge = session.query(UserChallenges).filter_by(C_idx=challenge_id, username=username).first()
+            if not challenge:
+                return None
+            return {'status': challenge.status, 'port': int(challenge.port)} if challenge.status == 'Running' else {'status': challenge.status}
+
+
+# class ChallengeRepository:
+#     def __init__(self):
+#         self.db_session = db.session
+
+#     def get_challenge_name(self, challenge_id: int) -> Optional[str]:
+#         """챌린지 ID로 챌린지 조회"""
+#         with self.get_session() as session:
+#             challenge = session.query(Challenges).get(challenge_id)
+#             return challenge.title if challenge else None
+
         
 
 class ChallengeRepository:
