@@ -97,8 +97,8 @@ class UserChallenges(db.Model):
     createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
 
     # 관계 설정
-    user = relationship('Users', backref='challenges')
-    challenge = relationship('Challenges', backref='user_challenges')
+    user = relationship('Users', backref='challenges', lazy='joined')
+    challenge = relationship('Challenges', backref='user_challenges', lazy='joined')
 
     # __table_args__ = (
     #     CheckConstraint('(port == 0) OR (port >= 15000 AND port <= 30000)', name='checkPort'),
