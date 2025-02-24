@@ -1,5 +1,6 @@
 import datetime
 import logging
+import sys
 from typing import Any, Dict
 from kafka import KafkaConsumer
 import json
@@ -7,98 +8,86 @@ from app.exceptions.kafka import QueueProcessingError
 
 
 class StatusMessage:
-   """상태 메시지를 표현하는 클래스"""
-   def __init__(self, user: str, problemId: str, newStatus: str, timestamp: str):
-       # 메시지의 기본 속성들을 초기화
-       self.user = user          # 사용자 ID
-       self.problemId = problemId    # 문제 ID 
-       self.newStatus = newStatus    # 새로운 상태
-       self.timestamp = timestamp    # 타임스탬프
+    """상태 메시지를 표현하는 클래스"""
+    def __init__(self, user: str, problemId: str, newStatus: str, timestamp: str):
+        self.user = user
+        self.problemId = problemId
+        self.newStatus = newStatus
+        self.timestamp = timestamp
 
-   @classmethod
-   def from_json(cls, data: Dict[str, Any]) -> 'StatusMessage':
-       """
-       JSON 데이터로부터 StatusMessage 객체를 생성하는 클래스 메서드
-       
-       Args:
-           data: JSON 형식의 딕셔너리 데이터
-       Returns:
-           StatusMessage 인스턴스
-       """
-       return cls(
-           user=data['user'],
-           problemId=data['problemId'],
-           newStatus=data['newStatus'],
-           timestamp=data['timestamp']
-       )
+    @classmethod
+    def from_json(cls, data: Dict[str, Any]) -> 'StatusMessage':
+        return cls(
+            user=data['user'],
+            problemId=data['problemId'],
+            newStatus=data['newStatus'],
+            timestamp=data['timestamp']
+        )
 
-   def __str__(self) -> str:
-       """객체를 문자열로 표현"""
-       return f"StatusMessage(user={self.user}, problemId={self.problemId}, newStatus={self.newStatus}, timestamp={self.timestamp})"
+    def __str__(self) -> str:
+        return f"StatusMessage(user={self.user}, problemId={self.problemId}, newStatus={self.newStatus}, timestamp={self.timestamp})"
 
 class KafkaEventConsumer:
-   """Kafka 이벤트 소비자 클래스"""
-   def __init__(self, config):
-       """
-       Kafka 소비자 초기화
-       
-       Args:
-           config (KafkaConfig): 설정 객체
-       """
-       self.config = config
-       self._consumer = None  # 실제 Kafka 소비자 인스턴스
+    """Kafka 이벤트 소비자 클래스"""
+    def __init__(self, config):
+        self.config = config
+        self._consumer = None
+        self.reconnect_attempts = 3  # 최대 재연결 횟수
 
-   @property
-   def consumer(self):
-       """
-       Kafka 소비자 인스턴스를 생성하고 반환하는 프로퍼티
-       지연 초기화(lazy initialization) 패턴 사용
-       """
-       if self._consumer is None:
-           try:
-               self._consumer = KafkaConsumer(
-                   self.config.topic,
-                   # 바이트 문자열을 JSON으로 자동 변환하는 deserializer 설정
-                   value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-                   **self.config.consumer_config
-               )
-           except Exception as e:
-            #    logger.error(f"Failed to create consumer: {e}")
-               raise QueueProcessingError(error_msg=f"Failed to create consumer: {e}") from e
-       return self._consumer
+    @property
+    def consumer(self):
+        """Kafka 소비자 인스턴스를 생성하고 반환 (지연 초기화)"""
+        if self._consumer is None:
+            self._initialize_consumer()
+        return self._consumer
 
-   def consume_events(self, callback):
-       """
-       이벤트를 소비하고 콜백 함수로 처리
-       
-       Args:
-           callback: 각 메시지를 처리할 콜백 함수
-       """
-       try:
-           for message in self.consumer:
-               try:
-                   # 메시지 파싱
-                   status_msg = StatusMessage.from_json(message.value)
-                   callback(status_msg)
-                   
-               except json.JSONDecodeError as e:
-                   # JSON 디코딩 오류 처리
-                #    logger.error(f"Error decoding message: {e}")
-                   continue
-               except KeyError as e:
-                   # 필수 필드 누락 오류 처리
-                #    logger.error(f"Missing required field in message: {e}")
-                   continue
-               except Exception as e:
-                   # 기타 예외 처리
-                #    logger.error(f"Error processing message: {e}")
-                   continue
-               
-       except Exception as e:
-           raise QueueProcessingError(error_msg=f"Kafka Error: {str(e)}") from e
+    def _initialize_consumer(self):
+        """KafkaConsumer 인스턴스를 생성하고 예외 발생 시 재시도"""
+        attempt = 0
+        while attempt < self.reconnect_attempts:
+            try:
+                self._consumer = KafkaConsumer(
+                    self.config.topic,
+                    value_deserializer=lambda x: json.loads(x.decode('utf-8')),
+                    **self.config.consumer_config
+                )
+                print("Kafka consumer successfully initialized.",file=sys.stderr)
+                return
+            except Exception as e:
+                print(f"Kafka consumer connection failed (Attempt {attempt+1}): {e}")
+                datetime.time.sleep(2 ** attempt)  # 지수 백오프 적용
+                attempt += 1
+        raise QueueProcessingError(error_msg="Failed to initialize Kafka consumer after retries")
 
-   def close(self):
-       """Kafka 소비자 연결 종료"""
-       if self._consumer:
-           self._consumer.close()
-           self._consumer = None
+    def consume_events(self, callback):
+        """이벤트를 소비하고 콜백 함수로 처리"""
+        try:
+            for message in self.consumer:
+                try:
+                    status_msg = StatusMessage.from_json(message.value)
+                    callback(status_msg)
+                except json.JSONDecodeError as e:
+                    print(f"JSON decoding error: {e}",file=sys.stderr)
+                    continue
+                except KeyError as e:
+                    print(f"Missing required field: {e}",file=sys.stderr)
+                    continue
+                except Exception as e:
+                    print(f"Unexpected error processing message: {e}",file=sys.stderr)
+                    continue
+        except Exception as e:
+            print(f"Kafka consumer error: {e}",file=sys.stderr)
+            self._reconnect_consumer()
+
+    def _reconnect_consumer(self):
+        """Kafka 소비자 재연결"""
+        print("Reconnecting Kafka consumer...",file=sys.stderr)
+        self.close()
+        self._initialize_consumer()
+
+    def close(self):
+        """Kafka 소비자 종료 및 연결 해제"""
+        if self._consumer:
+            self._consumer.close()
+            self._consumer = None
+        print("Kafka consumer closed.",file=sys.stderr)
