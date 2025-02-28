@@ -57,9 +57,9 @@ class K8sClient:
         if not challenge_definition:
             raise ChallengeNotFound(error_msg=f"Challenge definition not found for ID: {challenge_id}")
 
-        username = username.lower() # 소문자로 변환
         # Challenge name 생성 및 검증
-        challenge_name = f"challenge-{challenge_id}-{username}"
+        challenge_name = f"challenge-{challenge_id}-{username.lower()}"
+        challenge_name = self._normalize_k8s_name(challenge_name)
         if not self._is_valid_k8s_name(challenge_name):
             raise UserChallengeCreationError(error_msg=f"Invalid challenge name: {challenge_name}")
 
@@ -80,7 +80,7 @@ class K8sClient:
         
         # 공백의 경우 하이픈으로 변환
         challenge_definition = self._normalize_k8s_name(challenge_definition)
-        
+        valid_username = self._normalize_k8s_name(username)
         # Challenge manifest 생성
         challenge_manifest = {
             "apiVersion": "apps.hexactf.io/v1alpha1",
@@ -89,7 +89,7 @@ class K8sClient:
                 "name": challenge_name,
                 "labels": {
                     "apps.hexactf.io/challengeId": str(challenge_id),
-                    "apps.hexactf.io/user": username
+                    "apps.hexactf.io/user": valid_username
                 }
             },
             "spec": {
@@ -106,6 +106,7 @@ class K8sClient:
             body=challenge_manifest
         )
 
+        time.sleep(5)
         # status 값 가져오기
         status = challenge.get('status', {})
         endpoint = status.get('endpoint')
@@ -202,8 +203,8 @@ class K8sClient:
         """
         
         # UserChallenge 조회 
-        username = username.lower() # 소문자로 변환
-        challenge_name = f"challenge-{challenge_id}-{username}"
+        challenge_name = f"challenge-{challenge_id}-{username.lower()}"
+        challenge_name = self._normalize_k8s_name(challenge_name)
         user_challenge_repo = UserChallengesRepository()
         user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_name)
         if not user_challenge:

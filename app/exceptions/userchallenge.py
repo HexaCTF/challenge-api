@@ -42,7 +42,7 @@ class UserChallengeNotFoundError(UserChallengeException):
     def __init__(self, error_msg: str = None):
         super().__init__(
             error_type=ApiErrorTypes.CHALLENGE_NOT_FOUND,
-            message="Challenge not found",
+            message="UserChallenge not found",
             status_code=404,
             error_msg=error_msg
        )

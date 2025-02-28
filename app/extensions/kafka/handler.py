@@ -48,14 +48,15 @@ class MessageHandler:
         """
         try:
             username, challenge_id, new_status, _ = MessageHandler.validate_message(message)
-            username = username.lower() # 소문자로 변환
-            challenge_name = challenge_name = f"challenge-{challenge_id}-{username}"
+            challenge_name = challenge_name = f"challenge-{challenge_id}-{username.lower()}"
             
             # 상태 정보 업데이트
             repo = UserChallengesRepository()
             user_challenge = repo.get_by_user_challenge_name(challenge_name)
+            logger.debug(f"Found user challenge {challenge_name} : {user_challenge}")
             if user_challenge is None:
                 repo.create(username, challenge_id, challenge_name, 0, new_status)
+            logger.debug(f"Updating status of challenge {challenge_name} to {new_status}")
             
             success = repo.update_status(user_challenge, new_status)
             if not success:
