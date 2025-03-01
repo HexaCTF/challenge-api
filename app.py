@@ -1,6 +1,4 @@
-
-
-from app.factory import create_app
+from hexactf.factory import create_app
 
 app = create_app()
 

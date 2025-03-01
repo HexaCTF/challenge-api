@@ -4,8 +4,8 @@ SQLAlchemy==2.0.20
 pymysql==1.0.3
 kubernetes==26.1.0
 Flask-SQLAlchemy==3.0.2
-mariadb>=1.0.11
+# mariadb>=1.0.11
 prometheus-client==0.19.0 
 python-logging-loki==0.3.1 
 flask-prometheus-metrics==1.0.0
-psutil==5.9.8
+psutil
