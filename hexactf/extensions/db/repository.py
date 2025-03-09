@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Optional
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
@@ -69,7 +70,8 @@ class UserChallengesRepository:
             bool: 업데이트 성공 여부
         """
         try:
-            db.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
+            if os.getenv("TEST_MODE") != "true":
+                db.session.execute(text("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"))
             fresh_challenge = self.session.merge(challenge)
             self.session.refresh(fresh_challenge) 
             fresh_challenge.status = new_status
