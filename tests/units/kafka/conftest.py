@@ -20,7 +20,7 @@ def kafka_mock():
     """Mock KafkaConsumer globally to prevent real connection attempts"""
     with patch("hexactf.extensions.kafka.consumer.KafkaConsumer") as mock_kafka_consumer:
         mock_kafka_consumer.return_value.__iter__.return_value = []  # No messages by default
-        yield mock_kafka_consumer  # Provide mock instance
+        yield mock_kafka_consumer  
 
 @pytest.fixture
 def kafka_event_consumer(kafka_mock):
@@ -29,3 +29,10 @@ def kafka_event_consumer(kafka_mock):
     mock_config.topic = "test_topic"
     mock_config.consumer_config = {"bootstrap_servers": "localhost:9092"}
     return KafkaEventConsumer(mock_config)
+
+
+@pytest.fixture
+def repo_mock():
+    """Fixture for mocking the UserChallengesRepository"""
+    with patch("hexactf.extensions.db.UserChallengesRepository") as mock_repo:
+        yield mock_repo.return_value
