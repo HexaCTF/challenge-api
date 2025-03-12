@@ -33,50 +33,6 @@ def create_challenge():
     
     return jsonify({'data' : {'port': endpoint}}), 200
 
-def modify_k8s_yaml(yaml_content, username, challenge_id):
-    """Modify the Kubernetes YAML content to include unique identifiers."""
-    resources = yaml.safe_load(yaml_content)
-    
-    if not isinstance(resources, list):
-        resources = [resources]
-    
-    modified_resources = []
-    
-    for resource in resources:
-        if 'metadata' in resource:
-            # Modify name to include username and challenge_id
-            if 'name' in resource['metadata']:
-                resource['metadata']['name'] = f"{resource['metadata']['name']}-{username}-{challenge_id}"
-            
-            # Add labels
-            if 'labels' not in resource['metadata']:
-                resource['metadata']['labels'] = {}
-            resource['metadata']['labels'].update({
-                'username': username,
-                'challenge_id': challenge_id
-            })
-        
-        modified_resources.append(resource)
-    
-    return yaml.safe_dump_all(modified_resources)
-
-@challenge_bp.route('/generate', methods=['POST'])
-def generate_yaml():
-    """API endpoint to modify and return Kubernetes YAML with user-specific values."""
-    try:
-        data = request.json
-        username = data.get('username')
-        challenge_id = data.get('challenge_id')
-        yaml_file = data.get('yaml_file')
-        
-        if not all([username, challenge_id, yaml_file]):
-            return jsonify({'error': 'Missing required fields'}), 400
-        
-        modified_yaml = modify_k8s_yaml(yaml_file, username, challenge_id)
-        
-        return jsonify({'modified_yaml': modified_yaml})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @challenge_bp.route('/delete', methods=['POST'])    
 def delete_userchallenges():
