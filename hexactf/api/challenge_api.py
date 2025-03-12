@@ -1,6 +1,7 @@
 from json import JSONDecodeError
 from logging import log
 from flask import Blueprint, jsonify, request
+import yaml
 
 from hexactf.exceptions.api_exceptions import InvalidRequest
 from hexactf.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError, UserChallengeNotFoundError
@@ -31,6 +32,7 @@ def create_challenge():
         raise  UserChallengeCreationError(error_msg=f"Failed to create challenge {challenge_id} for user {username} : Endpoint did not exist")
     
     return jsonify({'data' : {'port': endpoint}}), 200
+
 
 @challenge_bp.route('/delete', methods=['POST'])    
 def delete_userchallenges():
