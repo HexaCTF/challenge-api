@@ -14,8 +14,6 @@
 > [!TIP]  
 > Challenge API 제작에 관한 내용은 [블로그](https://s0okju.github.io/p/hexactf-10/)에 자세히 나와 있습니다.
 
----
-
 ## API
 
 |          Endpoint          | Method |     Description     |
