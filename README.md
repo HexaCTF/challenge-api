@@ -1,6 +1,7 @@
 # Challenge API
 
-클라이언트로부터 커스텀 리소스인 Challenge를 제어하기 위해 사용되는 Control API
+HexaCTF의 Container Control 프로젝트의 일부입니다.  
+클라이언트로부터 커스텀 리소스인 Challenge를 제어하기 위해 사용되는 Control API입니다.
 
 > [!NOTE]  
 > Challenge에 대한 정보는 [Challenge Operator](https://github.com/HexaCTF/challenge-operator)를 참고해주세요.
@@ -16,8 +17,8 @@
 
 ## API
 
-|          Endpoint          | Method |     Description     |
-| :------------------------: | :----: | :-----------------: |
-|    /v1/user-challenges     |  POST  |   Challenge 생성    |
-| /v1/user-challenges/delete |  POST  |   Challenge 삭제    |
-| /v1/user-challenges/status |  GET   | Challenge 상태 조회 |
+|                          Endpoint                           | Method |     Description     |
+| :---------------------------------------------------------: | :----: | :-----------------: |
+|        [/v1/user-challenges](./md/user-challenge.md)        |  POST  |   Challenge 생성    |
+| [/v1/user-challenges/delete](./md/user-challenge-delete.md) |  POST  |   Challenge 삭제    |
+| [/v1/user-challenges/status](./md/user-challenge-status.md) |  GET   | Challenge 상태 조회 |
