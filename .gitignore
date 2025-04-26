@@ -156,6 +156,7 @@ fabric.properties
 
 .venv/
 
+# Loki & Prometheus
 loki/
 loki_data/
 loki_wal/
