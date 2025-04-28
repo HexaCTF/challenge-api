@@ -9,4 +9,6 @@ prometheus-client==0.19.0
 python-logging-loki==0.3.1 
 flask-prometheus-metrics==1.0.0
 psutil
+
+# Test
 pytest-mock==3.14.0
