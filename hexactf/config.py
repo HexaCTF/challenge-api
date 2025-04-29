@@ -92,3 +92,5 @@ class Config:
         "application": APP_NAME,
         "environment": os.getenv('ENVIRONMENT', 'development')
     }
+
+    TEST_MODE = "true"
