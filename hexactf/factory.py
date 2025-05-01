@@ -11,6 +11,7 @@ from hexactf.config import Config
 from hexactf.exceptions.base_exceptions import CustomBaseException
 from hexactf.extensions.kafka.handler import MessageHandler
 from hexactf.extensions_manager import kafka_consumer, db
+from hexactf.monitoring.loki_logger import FlaskLokiLogger
 
 def start_kafka_consumer(app):
     """Start Kafka consumer in a separate thread"""
