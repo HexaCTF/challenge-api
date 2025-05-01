@@ -23,17 +23,17 @@ class FlaskApp:
         self.app = Flask(__name__)
         self.app.config.from_object(config_class)
                
-        self.logger = FlaskLokiLogger(app_name="challenge-api", loki_url=self.app.config['LOKI_URL']).logger
+        # self.logger = FlaskLokiLogger(app_name="challenge-api", loki_url=self.app.config['LOKI_URL']).logger
 
-        if os.getenv("TEST_MODE") != "true":
-            from hexactf.monitoring.loki_logger import FlaskLokiLogger
-            self.logger = FlaskLokiLogger(app_name="challenge-api", loki_url=self.app.config['LOKI_URL']).logger
-        else:
-            self.logger = self.app.logger  # Use Flask default logger
+        # if os.getenv("TEST_MODE") != "true":
+        #     from hexactf.monitoring.loki_logger import FlaskLokiLogger
+        #     self.logger = FlaskLokiLogger(app_name="challenge-api", loki_url=self.app.config['LOKI_URL']).logger
+        # else:
+        #     self.logger = self.app.logger  # Use Flask default logger
         
         # 초기 설정
         self._init_extensions()
-        self._setup_middleware()
+        # self._setup_middleware()
         self._register_error_handlers()
         self._setup_blueprints()
         # self._init_metrics_collector()
@@ -66,7 +66,7 @@ class FlaskApp:
         @self.app.after_request
         def log_request(response):
             total_time = (datetime.now() - g.start).total_seconds()
-            self._log_request(response, total_time)
+            # self._log_request(response, total_time)
             return response
 
     def _register_error_handlers(self):
@@ -75,7 +75,7 @@ class FlaskApp:
         @self.app.errorhandler(CustomBaseException)
         def handle_challenge_error(error):
             print(f"[DEBUG] error: {error.__dict__}", file=sys.stderr)
-            self._log_error(error)
+            # self._log_error(error)
             response = {
                 'error': {
                     'code': error.error_type.value,
