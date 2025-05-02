@@ -13,7 +13,7 @@ HexaCTF의 Container Control 프로젝트의 일부입니다.
 ![시스템 구성도](./imgs/image.png)
 
 > [!TIP]  
-> Challenge API 제작에 관한 내용은 [블로그](https://s0okju.github.io/p/hexactf-10/)에 자세히 나와 있습니다.
+> Challenge API 제작에 관한 내용은 [블로그](https://medium.com/s0okju-tech/hexactf-10-%EC%95%84%ED%82%A4%ED%85%8D%EC%B3%90-%EC%84%A4%EA%B3%84-%EB%B0%8F-challenge-control-api-%EC%A0%9C%EC%9E%91-7eac7a44fc5c)에 자세히 나와 있습니다.
 
 ## API
 
