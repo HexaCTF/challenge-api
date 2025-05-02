@@ -7,8 +7,7 @@ HexaCTF의 Container Control 프로젝트의 일부입니다. 클라이언트로
 
 ## 아키텍쳐
 
-[Challenge Operator](https://github.com/HexaCTF/challenge-operator)에서 상태가 변경되면 큐에 상태 메시지를 전송합니다. 
-Challenge API는 큐에 있는 상태 메세지를 얻어 데이터베이스에 값을 저장합니다.
+[Challenge Operator](https://github.com/HexaCTF/challenge-operator)에서 상태가 변경되면 큐에 상태 메시지를 전송합니다. Challenge API는 큐에 있는 상태 메세지를 얻어 데이터베이스에 값을 저장합니다.
 
 ![시스템 구성도](./imgs/image.png)
 
