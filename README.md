@@ -1,7 +1,6 @@
 # Challenge API
 
-HexaCTF의 Container Control 프로젝트의 일부입니다. 
-클라이언트로부터 커스텀 리소스인 Challenge를 제어하기 위해 사용되는 Control API입니다.
+HexaCTF의 Container Control 프로젝트의 일부입니다. 클라이언트로부터 커스텀 리소스인 Challenge를 제어하기 위해 사용되는 Control API입니다.
 
 > [!NOTE]  
 > Challenge에 대한 정보는 [Challenge Operator](https://github.com/HexaCTF/challenge-operator)를 참고해주세요.
