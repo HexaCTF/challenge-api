@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from enum import Enum
 from hexactf.extensions_manager import db
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
