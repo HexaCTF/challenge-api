@@ -85,25 +85,7 @@ class Challenges(db.Model):
     unlockChallenges = db.Column(db.String(255), default='', nullable=False)
     isPersistence = db.Column(db.Boolean, default=False, nullable=False)
 
-# UserChallenges Table Model
-class UserChallenges(db.Model):
-    __tablename__ = 'UserChallenges'
-
-    idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(20), db.ForeignKey('Users.username'), nullable=False)
-    C_idx = db.Column(db.Integer, db.ForeignKey('Challenges.idx'), nullable=False)
-    userChallengeName = db.Column(db.String(255), nullable=False)
-    createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
-
-
-# UserChallenges_status Table Model
-class UserChallenges_status(db.Model):
-    __tablename__ = 'UserChallenges_status'
-
-    idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    port = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='None')
-    createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
+#yault=current_time_kst, nullable=False)
 
 # Submissions Table Model
 class Submissions(db.Model):
