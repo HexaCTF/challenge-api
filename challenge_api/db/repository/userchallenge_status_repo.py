@@ -22,6 +22,11 @@ class UserChallengeStatusRepository:
             UserChallenges: 생성된 사용자 챌린지 상태
         """
         try:
+            # Check if UserChallenge exists
+            user_challenge = self.session.get(UserChallenges, userchallenge_idx)
+            if not user_challenge:
+                raise InternalServerError(error_msg=f"UserChallenge not found with idx: {userchallenge_idx}")
+
             challenge_status = UserChallenges_status(
                 port=port,
                 status="None",
