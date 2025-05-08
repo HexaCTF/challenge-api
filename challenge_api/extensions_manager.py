@@ -15,7 +15,7 @@ from challenge_api.extensions.kafka.handler import MessageHandler
 
 # 로깅 설정
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # DEBUG 레벨로 변경하여 더 자세한 로그 확인
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     stream=sys.stdout
 )
@@ -45,22 +45,32 @@ class FlaskKafkaConsumer:
         self._reconnect_delay = 5  # 재연결 시도 간격 (초)
         self._max_reconnect_attempts = 3  # 최대 재연결 시도 횟수
         self._last_error = None  # 마지막 에러 저장
-        log_and_print("FlaskKafkaConsumer initialized", 'info')
+        self._state = "INITIALIZED"  # consumer 상태 추적
+        log_and_print(f"FlaskKafkaConsumer initialized with state: {self._state}", 'debug')
+    
+    def _update_state(self, new_state: str):
+        """consumer 상태 업데이트 및 로깅"""
+        old_state = self._state
+        self._state = new_state
+        log_and_print(f"Consumer state changed: {old_state} -> {new_state}", 'debug')
     
     def init_app(self, app: Flask) -> None:
         """Flask 애플리케이션 초기화"""
         with self._lock:
             self.app = app
             try:
+                self._update_state("INITIALIZING")
                 config = KafkaConfig(
                     bootstrap_servers=[app.config['KAFKA_BOOTSTRAP_SERVERS']],
                     topic=app.config['KAFKA_TOPIC'],
                     group_id=app.config['KAFKA_GROUP_ID']
                 )
                 self.consumer = KafkaEventConsumer(config)
+                self._update_state("CONFIGURED")
                 log_and_print("Kafka consumer initialized with app config", 'info')
             except Exception as e:
                 self._last_error = str(e)
+                self._update_state("INIT_ERROR")
                 error_msg = f"Failed to initialize Kafka consumer with app config: {str(e)}"
                 log_and_print(error_msg, 'error')
                 log_and_print(f"Stack trace: {traceback.format_exc()}", 'error')
@@ -81,14 +91,17 @@ class FlaskKafkaConsumer:
                 return
 
             try:
+                self._update_state("STARTING")
                 self._initialize_consumer()
                 self._running.set()
                 self._consumer_thread = Thread(target=self._consume_messages)
                 self._consumer_thread.daemon = True
                 self._consumer_thread.start()
+                self._update_state("RUNNING")
                 log_and_print("Kafka consumer started successfully", 'info')
             except Exception as e:
                 self._last_error = str(e)
+                self._update_state("START_ERROR")
                 error_msg = f"Failed to start consumer: {str(e)}"
                 log_and_print(error_msg, 'error')
                 log_and_print(f"Stack trace: {traceback.format_exc()}", 'error')
@@ -107,6 +120,7 @@ class FlaskKafkaConsumer:
                 log_and_print("Consumer not running", 'warning')
                 return
             
+            self._update_state("STOPPING")
             self._running.clear()
             if self.consumer:
                 try:
@@ -120,11 +134,13 @@ class FlaskKafkaConsumer:
                 if self._consumer_thread.is_alive():
                     log_and_print("Consumer thread did not stop gracefully", 'error')
                 self._consumer_thread = None
+            self._update_state("STOPPED")
             log_and_print("Kafka consumer stopped", 'info')
     
     def _initialize_consumer(self) -> None:
         """Kafka consumer를 초기화합니다."""
         try:
+            self._update_state("CONNECTING")
             if self.app:
                 # Flask 앱 설정에서 가져오기
                 bootstrap_servers = self.app.config['KAFKA_BOOTSTRAP_SERVERS']
@@ -137,7 +153,7 @@ class FlaskKafkaConsumer:
                 group_id = os.getenv('KAFKA_GROUP_ID', 'challenge-status-group')
 
             init_msg = f"Initializing Kafka consumer with bootstrap_servers={bootstrap_servers}, topic={topic}, group_id={group_id}"
-            log_and_print(init_msg, 'info')
+            log_and_print(init_msg, 'debug')
 
             self.consumer = KafkaConsumer(
                 topic,
@@ -153,20 +169,25 @@ class FlaskKafkaConsumer:
                 max_poll_interval_ms=300000,  # 5분
                 max_poll_records=500  # 한 번에 최대 500개 메시지 처리
             )
+            self._update_state("CONNECTED")
             log_and_print(f"Kafka consumer initialized successfully with bootstrap servers: {bootstrap_servers}", 'info')
         except NoBrokersAvailable as e:
+            self._update_state("CONNECTION_ERROR")
             self._last_error = f"No Kafka brokers available: {str(e)}"
             log_and_print(self._last_error, 'error')
             raise
         except ConnectionError as e:
+            self._update_state("CONNECTION_ERROR")
             self._last_error = f"Failed to connect to Kafka: {str(e)}"
             log_and_print(self._last_error, 'error')
             raise
         except TimeoutError as e:
+            self._update_state("TIMEOUT_ERROR")
             self._last_error = f"Kafka connection timeout: {str(e)}"
             log_and_print(self._last_error, 'error')
             raise
         except Exception as e:
+            self._update_state("INIT_ERROR")
             self._last_error = f"Failed to initialize Kafka consumer: {str(e)}"
             log_and_print(self._last_error, 'error')
             log_and_print(f"Stack trace: {traceback.format_exc()}", 'error')
@@ -181,13 +202,14 @@ class FlaskKafkaConsumer:
             try:
                 if not self.consumer:
                     log_and_print("Consumer not initialized", 'error')
+                    self._update_state("CONSUMER_ERROR")
                     break
 
                 for message in self.consumer:
                     if not self._running.is_set():
                         break
                     try:
-                        log_and_print(f"Received message: {message.value}", 'info')
+                        log_and_print(f"Received message: {message.value}", 'debug')
                         self.handler.handle_message(message.value)
                         reconnect_attempts = 0  # 성공적인 메시지 처리 후 재시도 카운트 리셋
                     except Exception as e:
@@ -202,6 +224,7 @@ class FlaskKafkaConsumer:
                     log_and_print(self._last_error, 'error')
                     if reconnect_attempts < self._max_reconnect_attempts:
                         reconnect_attempts += 1
+                        self._update_state("RECONNECTING")
                         retry_msg = f"Attempting to reconnect (attempt {reconnect_attempts}/{self._max_reconnect_attempts})"
                         log_and_print(retry_msg, 'info')
                         time.sleep(self._reconnect_delay)
@@ -213,6 +236,7 @@ class FlaskKafkaConsumer:
                             log_and_print(self._last_error, 'error')
                             log_and_print(f"Stack trace: {traceback.format_exc()}", 'error')
                     else:
+                        self._update_state("MAX_RECONNECT_REACHED")
                         log_and_print("Max reconnection attempts reached", 'error')
                         break
             except Exception as e:
@@ -220,8 +244,10 @@ class FlaskKafkaConsumer:
                     self._last_error = f"Unexpected error in consumer loop: {str(e)}"
                     log_and_print(self._last_error, 'error')
                     log_and_print(f"Stack trace: {traceback.format_exc()}", 'error')
+                    self._update_state("UNEXPECTED_ERROR")
                     break
 
+        self._update_state("CONSUMPTION_ENDED")
         log_and_print("Message consumption loop stopped", 'info')
 
     def is_running(self) -> bool:
@@ -231,6 +257,10 @@ class FlaskKafkaConsumer:
     def get_last_error(self) -> Optional[str]:
         """마지막 에러 메시지를 반환"""
         return self._last_error
+
+    def get_state(self) -> str:
+        """현재 consumer 상태를 반환"""
+        return self._state
 
 # 전역 인스턴스 생성
 db = SQLAlchemy()
