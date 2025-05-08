@@ -115,7 +115,7 @@ services:
         read_only: true
     environment:
       DEVELOPMENT: "true"
-      METRICS_ADDR: ":8081"
+      METRICS_ADDR: ":8079"
       KAFKA_BROKERS: "localhost:9093"
       LOG_LEVEL: "debug"
       KUBECONFIG: "/home/nonroot/.kube/config"
