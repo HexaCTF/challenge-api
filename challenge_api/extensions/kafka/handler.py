@@ -77,27 +77,44 @@ class MessageHandler:
             challenge_info = ChallengeInfo(challenge_id=int(challenge_id), user_id=int(user_id))
             challenge_name = challenge_info.name
             
+            logger.info(f"Processing message for challenge {challenge_name}")
+            
             # 상태 정보 업데이트
             userchallenge_repo = UserChallengesRepository()
             status_repo = UserChallengeStatusRepository()
             
             if not userchallenge_repo.is_exist(challenge_info):
-                logger.warning(f"Challenge {challenge_name} does not exist")
-                return
+                logger.error(f"Challenge {challenge_name} does not exist")
+                raise QueueProcessingError(error_msg=f"Challenge {challenge_name} not found")
                 
             userchallenge = userchallenge_repo.get_by_user_challenge_name(challenge_name)
             if not userchallenge:
-                logger.warning(f"Challenge {challenge_name} exists but could not be retrieved")
-                return
+                logger.error(f"Failed to retrieve challenge {challenge_name}")
+                raise QueueProcessingError(error_msg=f"Failed to retrieve challenge {challenge_name}")
                 
             recent_status = status_repo.get_recent_status(userchallenge.idx)
+            
+            # 포트 처리
+            try:
+                port = int(endpoint) if endpoint else 0
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid endpoint value: {endpoint}, using 0 as default")
+                port = 0
+
             if not recent_status:
-                logger.warning(f"No status found for challenge {challenge_name}, creating new status")
+                logger.info(f"Creating initial status for challenge {challenge_name}")
                 try:
-                    recent_status = status_repo.create(userchallenge_idx=userchallenge.idx, port=0, status='Pending')
+                    recent_status = status_repo.create(
+                        userchallenge_idx=userchallenge.idx,
+                        port=port,
+                        status='Pending'
+                    )
+                    if not recent_status:
+                        raise QueueProcessingError(error_msg="Failed to create initial status")
+                    logger.info(f"Created initial status for challenge {challenge_name}")
                 except SQLAlchemyError as e:
-                    logger.error(f"Failed to create initial status: {str(e)}")
-                    raise QueueProcessingError(error_msg=f"Database error while creating status: {str(e)}")
+                    logger.error(f"Database error creating status: {str(e)}")
+                    raise QueueProcessingError(error_msg=f"Database error: {str(e)}")
             
             # 상태 전이 검증
             if not MessageHandler.validate_status_transition(recent_status.status, new_status):
@@ -105,25 +122,21 @@ class MessageHandler:
                 return
             
             try:
-                port = int(endpoint) if endpoint else 0
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid endpoint value: {endpoint}, using 0 as default")
-                port = 0
-            
-            try:
-                if new_status == 'Running' and endpoint:
-                    # Running 상태이고 endpoint가 있으면 포트 업데이트
+                if new_status == 'Running':
+                    # Running 상태일 때 포트 업데이트
                     status_repo.update_port(recent_status.idx, port)
+                    logger.info(f"Updated port to {port} for challenge {challenge_name}")
                 
                 status_repo.update_status(recent_status.idx, new_status)
-                logger.info(f"Updated status for challenge {challenge_name} to {new_status} with endpoint {endpoint}")
+                logger.info(f"Updated status to {new_status} for challenge {challenge_name}")
+                
             except SQLAlchemyError as e:
-                logger.error(f"Database error while updating status: {str(e)}")
+                logger.error(f"Database error updating status: {str(e)}")
                 raise QueueProcessingError(error_msg=f"Database error: {str(e)}")
             
         except ValueError as e:
             logger.error(f"Invalid message format: {str(e)}")
-            raise QueueProcessingError(error_msg=f"Invalid message format {str(e)}") from e 
+            raise QueueProcessingError(error_msg=f"Invalid message format: {str(e)}") from e
         except Exception as e:
-            logger.error(f"Unexpected error while processing message: {str(e)}")
-            raise QueueProcessingError(error_msg=f"Kafka Error: {str(e)}") from e
+            logger.error(f"Unexpected error: {str(e)}")
+            raise QueueProcessingError(error_msg=str(e)) from e
