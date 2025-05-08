@@ -1,4 +1,5 @@
 import logging
+import sys
 from typing import Any, Dict
 from challenge_api.exceptions.kafka_exceptions import QueueProcessingError
 from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
@@ -77,12 +78,16 @@ class MessageHandler:
             challenge_info = ChallengeInfo(challenge_id=int(challenge_id), user_id=int(user_id))
             challenge_name = challenge_info.name
             
+
             logger.info(f"Processing message for challenge {challenge_name}")
+            print(f"Received message: {message}", file=sys.stderr)
+
             
             # 상태 정보 업데이트
             userchallenge_repo = UserChallengesRepository()
             status_repo = UserChallengeStatusRepository()
             
+
             if not userchallenge_repo.is_exist(challenge_info):
                 logger.error(f"Challenge {challenge_name} does not exist")
                 raise QueueProcessingError(error_msg=f"Challenge {challenge_name} not found")
@@ -123,6 +128,7 @@ class MessageHandler:
             except SQLAlchemyError as e:
                 logger.error(f"Database error updating status: {str(e)}")
                 raise QueueProcessingError(error_msg=f"Database error: {str(e)}")
+
             
         except ValueError as e:
             logger.error(f"Invalid message format: {str(e)}")
