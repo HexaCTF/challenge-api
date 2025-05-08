@@ -14,6 +14,7 @@ import traceback
 from challenge_api.extensions.kafka.handler import MessageHandler
 
 # 로깅 설정
+# 로깅 설정
 logging.basicConfig(
     level=logging.DEBUG,  # DEBUG 레벨로 변경하여 더 자세한 로그 확인
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
