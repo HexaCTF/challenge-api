@@ -1,4 +1,5 @@
 import logging
+import sys
 from typing import Any, Dict
 from challenge_api.exceptions.kafka_exceptions import QueueProcessingError
 from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
@@ -54,6 +55,8 @@ class MessageHandler:
             challenge_info = ChallengeInfo(challenge_id=int(challenge_id), user_id=int(user_id))
             challenge_name = challenge_info.name
             
+            print(f"Received message: {message}", file=sys.stderr)
+            
             # 상태 정보 업데이트
             userchallenge_repo = UserChallengesRepository()
             status_repo = UserChallengeStatusRepository()
@@ -63,23 +66,17 @@ class MessageHandler:
                 if not userchallenge:
                     logger.warning(f"Challenge {challenge_name} exists but could not be retrieved")
                     return
+                
+                recent_status = None
+                if new_status == 'Pending':
+                    recent_status = status_repo.create(userchallenge_idx=userchallenge.idx, port=0)   
+                else:
+                    recent_status = status_repo.get_recent_status(userchallenge.idx)
+                    if new_status == 'Running' and endpoint:
+                        # Running 상태이고 endpoint가 있으면 포트 업데이트
+                        status_repo.update_port(recent_status.idx, int(endpoint))
+                    status_repo.update_status(recent_status.idx, new_status)
                     
-                recent_status = status_repo.get_recent_status(userchallenge.idx)
-                if not recent_status:
-                    logger.warning(f"No status found for challenge {challenge_name}, creating new status")
-                    recent_status = status_repo.create(userchallenge_idx=userchallenge.idx, port=0)
-                
-                try:
-                    port = int(endpoint) if endpoint else 0
-                except (ValueError, TypeError):
-                    logger.warning(f"Invalid endpoint value: {endpoint}, using 0 as default")
-                    port = 0
-                
-                if new_status == 'Running' and endpoint:
-                    # Running 상태이고 endpoint가 있으면 포트 업데이트
-                    status_repo.update_port(recent_status.idx, port)
-                
-                status_repo.update_status(recent_status.idx, new_status)
                 logger.info(f"Updated status for challenge {challenge_name} to {new_status} with endpoint {endpoint}")
             else:
                 logger.warning(f"Challenge {challenge_name} does not exist")
