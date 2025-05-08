@@ -15,11 +15,14 @@ class FlaskKafkaConsumer:
         self._running = Event()
         self._lock = Lock()
         self.app: Optional[Flask] = None
+
         print("[INFO] FlaskKafkaConsumer initialized", file=sys.stderr)
+
     
     def init_app(self, app: Flask) -> None:
         """Flask 애플리케이션 초기화"""
         with self._lock:
+
             try:
                 self.app = app
                 print(f"[INFO] Initializing Kafka consumer with bootstrap servers: {app.config['KAFKA_BOOTSTRAP_SERVERS']}", file=sys.stderr)
@@ -40,6 +43,7 @@ class FlaskKafkaConsumer:
                 print(f"[ERROR] Failed to initialize Kafka consumer: {str(e)}", file=sys.stderr)
                 print(f"[ERROR] Traceback: {traceback.format_exc()}", file=sys.stderr)
                 raise
+
     
     def cleanup(self, exception=None):
         """애플리케이션 컨텍스트 종료 시 정리"""
@@ -51,6 +55,7 @@ class FlaskKafkaConsumer:
     def start_consuming(self, message_handler: Callable) -> None:
         """Thread-safe하게 메시지 소비 시작"""
         with self._lock:
+
             try:
                 if self._consumer_thread is not None:
                     print("[WARNING] Consumer thread already running", file=sys.stderr)
@@ -69,10 +74,12 @@ class FlaskKafkaConsumer:
                 print(f"[ERROR] Failed to start consumer thread: {str(e)}", file=sys.stderr)
                 print(f"[ERROR] Traceback: {traceback.format_exc()}", file=sys.stderr)
                 raise
+
     
     def stop_consuming(self) -> None:
         """Thread-safe하게 메시지 소비 중지"""
         with self._lock:
+
             try:
                 if not self._running.is_set():
                     print("[INFO] Consumer not running", file=sys.stderr)
@@ -104,11 +111,13 @@ class FlaskKafkaConsumer:
                 print(f"[ERROR] Error during consumer shutdown: {str(e)}", file=sys.stderr)
                 print(f"[ERROR] Traceback: {traceback.format_exc()}", file=sys.stderr)
                 raise
+
     
     def _consume_messages(self, message_handler: Callable) -> None:
         """Thread-safe한 메시지 소비 루프"""
         with self.app.app_context():
             try:
+
                 print("[INFO] Starting message consumption loop", file=sys.stderr)
                 while self._running.is_set():
                     try:
@@ -125,6 +134,7 @@ class FlaskKafkaConsumer:
                 print(f"[ERROR] Traceback: {traceback.format_exc()}", file=sys.stderr)
             finally:
                 print("[INFO] Consumer thread ending", file=sys.stderr)
+
                 
 # 전역 인스턴스 생성
 db = SQLAlchemy()
