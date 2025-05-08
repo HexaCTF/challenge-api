@@ -93,7 +93,11 @@ class MessageHandler:
             recent_status = status_repo.get_recent_status(userchallenge.idx)
             if not recent_status:
                 logger.warning(f"No status found for challenge {challenge_name}, creating new status")
-                recent_status = status_repo.create(userchallenge_idx=userchallenge.idx, port=0)
+                try:
+                    recent_status = status_repo.create(userchallenge_idx=userchallenge.idx, port=0, status='Pending')
+                except SQLAlchemyError as e:
+                    logger.error(f"Failed to create initial status: {str(e)}")
+                    raise QueueProcessingError(error_msg=f"Database error while creating status: {str(e)}")
             
             # 상태 전이 검증
             if not MessageHandler.validate_status_transition(recent_status.status, new_status):
@@ -118,6 +122,8 @@ class MessageHandler:
                 raise QueueProcessingError(error_msg=f"Database error: {str(e)}")
             
         except ValueError as e:
+            logger.error(f"Invalid message format: {str(e)}")
             raise QueueProcessingError(error_msg=f"Invalid message format {str(e)}") from e 
         except Exception as e:
+            logger.error(f"Unexpected error while processing message: {str(e)}")
             raise QueueProcessingError(error_msg=f"Kafka Error: {str(e)}") from e
