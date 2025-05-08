@@ -13,4 +13,6 @@ python-logging-loki==0.3.1
 flask-prometheus-metrics==1.0.0
 
 psutil
+pydantic
+pytest
 pytest-mock==3.14.0

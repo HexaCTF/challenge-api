@@ -1,13 +1,11 @@
-apiVersion: apps.hexactf.io/v1alpha1
+apiVersion: apps.hexactf.io/v2alpha1
 kind: Challenge
 metadata:
   name: ubuntu-instance-1
-  namespace: default
+  namespace: challenge
   labels:
     apps.hexactf.io/challengeId: "1"
-    apps.hexactf.io/user: "test"
+    apps.hexactf.io/userId: "1"
 spec:
-  # Challenge가 생성될 namespace
-  namespace: default
   # 사용할 ChallengeDefinition의 이름
   definition: ubuntu-basic
