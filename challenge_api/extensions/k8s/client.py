@@ -60,6 +60,8 @@ class K8sClient:
          
         if not userchallenge_repo.is_exist(challenge_info):
             userchallenge = userchallenge_repo.create(challenge_info)
+            # Create initial status with Pending state
+            userchallenge_status_repo.create(userchallenge_idx=userchallenge.idx, port=0)
         else:
             userchallenge = userchallenge_repo.get_by_user_challenge_name(challenge_info.name)
             recent = userchallenge_status_repo.get_recent_status(userchallenge.idx)
