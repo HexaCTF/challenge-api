@@ -67,6 +67,13 @@ class FlaskKafkaConsumer:
         """Thread-safe한 메시지 소비 루프"""
         with self.app.app_context():
             try:
+                print(f"Trying to connect to Kafka at {self.consumer.config['bootstrap_servers']}", file=sys.stderr)
+                # 연결 상태 확인
+                if not self.consumer.bootstrap_connected():
+                    print("Failed to connect to Kafka brokers", file=sys.stderr)
+                    return
+                print("Successfully connected to Kafka", file=sys.stderr)
+                
                 while self._running.is_set():
                     try:
                         self.consumer.consume_events(message_handler)
