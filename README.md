@@ -17,10 +17,8 @@ HexaCTF의 Container Control 프로젝트의 일부입니다.
 
 ## API
 
-|                          Endpoint                           | Method |     Description     |
-| :---------------------------------------------------------: | :----: | :-----------------: |
-|        [/v1/user-challenges](./md/user-challenge.md)        |  POST  |   Challenge 생성    |
-| [/v1/user-challenges/delete](./md/user-challenge-delete.md) |  POST  |   Challenge 삭제    |
-| [/v1/user-challenges/status](./md/user-challenge-status.md) |  GET   | Challenge 상태 조회 |
-
-
+|                           Endpoint                            | Method |     Description     |
+| :-----------------------------------------------------------: | :----: | :-----------------: |
+|        [/v1/user-challenges](./docs/user-challenge.md)        |  POST  |   Challenge 생성    |
+| [/v1/user-challenges/delete](./docs/user-challenge-delete.md) |  POST  |   Challenge 삭제    |
+| [/v1/user-challenges/status](./docs/user-challenge-status.md) |  GET   | Challenge 상태 조회 |
