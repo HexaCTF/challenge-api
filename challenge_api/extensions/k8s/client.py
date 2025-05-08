@@ -4,11 +4,11 @@ import time
 
 from kubernetes import client, config, watch
 
-from exceptions.challenge_exceptions import ChallengeNotFound
-from exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError
-from db.repository import ChallengeRepository, UserChallengesRepository, UserChallengeStatusRepository
-from objects.challenge_info import ChallengeInfo
-from utils.namebuilder import NameBuilder
+from challenge_api.exceptions.challenge_exceptions import ChallengeNotFound
+from challenge_api.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError
+from challenge_api.db.repository import ChallengeRepository, UserChallengesRepository, UserChallengeStatusRepository
+from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.utils.namebuilder import NameBuilder
 MAX_RETRIES = 3
 SLEEP_INTERVAL = 2
 
@@ -30,7 +30,7 @@ class K8sClient:
         self.core_api = client.CoreV1Api()
 
     
-    def create(self, data:ChallengeInfo, namespace="default") -> int:
+    def create(self, data:ChallengeInfo, namespace="challenge") -> int:
         """
         Challenge Custom Resource를 생성하고 NodePort를 반환합니다.
         
@@ -49,7 +49,6 @@ class K8sClient:
         # Repository 
         userchallenge_repo = UserChallengesRepository()
         userchallenge_status_repo = UserChallengeStatusRepository()
-        challenge_repo = ChallengeRepository()
         
         # user id를 숫자 대신에 문자로 표현 
         challenge_id, user_id = data.challenge_id, str(data.user_id)
@@ -58,12 +57,14 @@ class K8sClient:
         challenge_info= namebuilder.build()
         
         # Database에 UserChallenge 생성
+         
         if not userchallenge_repo.is_exist(challenge_info):
-            user_challenge = userchallenge_repo.create(challenge_info)
-        else: 
-            recent = userchallenge_status_repo.get_recent_status(challenge_info)
+            userchallenge = userchallenge_repo.create(challenge_info)
+        else:
+            userchallenge = userchallenge_repo.get_by_user_challenge_name(challenge_info.name)
+            recent = userchallenge_status_repo.get_recent_status(userchallenge.idx)
             # 이미 실행 중인 Challenge가 있으면 데이터베이스에 저장된 포트 번호 반환
-            if recent.status == 'Running':
+            if recent and recent.status == 'Running':
                 return recent.port
         
             
@@ -111,18 +112,18 @@ class K8sClient:
         
         status = None
         endpoint = 0
-        field_selector = f"apps.hexactf.io/challengeName={challenge_info.name}"
+        field_selector = f"apps.hexactf.io/challengeId={challenge_id},apps.hexactf.io/userId={user_id}"
         w = watch.Watch()
         for event in w.stream(self.custom_api.list_namespaced_custom_object,
                               group="apps.hexactf.io",
-                              version="v1alpha1",
+                              version="v2alpha1",
                               namespace=namespace,
-                              field_selector=field_selector,
+                              label_selector=field_selector,
                               plural="challenges",
                               ):
             obj = event['object']
             
-            if obj.get('status', {}).get('currentStatus') == 'Running':
+            if obj.get('status', {}).get('currentStatus', {}).get('status',"") == 'Running':
                 status = event['object']['status']
                 endpoint = status.get('endpoint')
                 w.stop()
@@ -146,12 +147,9 @@ class K8sClient:
         if not endpoint:
             raise UserChallengeCreationError(error_msg=f"Failed to get NodePort for Challenge: {challenge_info.name}")
         
-        success = userchallenge_status_repo.update_port(user_challenge, int(endpoint))
-        if not success:
-            raise UserChallengeCreationError(error_msg=f"Failed to update UserChallenge with NodePort: {endpoint}")
-    
         return endpoint
         
+
     # TODO: 별도의 Validator로 분리 
     # def _normalize_k8s_name(self, name: str) -> str:
     #     """
@@ -200,7 +198,7 @@ class K8sClient:
     #     pattern = r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
     #     return bool(re.match(pattern, name))
     
-    def delete(self, challenge_info: ChallengeInfo, namespace="default"):
+    def delete(self, challenge_info: ChallengeInfo, namespace="challenge"):
         """
         Challenge Custom Resource를 삭제합니다.
         
@@ -224,7 +222,7 @@ class K8sClient:
         try:
             self.custom_api.delete_namespaced_custom_object(
                 group="apps.hexactf.io",
-                version="v1alpha1",
+                version="v2alpha1",
                 namespace=namespace,
                 plural="challenges",
                 name=challenge_info.name

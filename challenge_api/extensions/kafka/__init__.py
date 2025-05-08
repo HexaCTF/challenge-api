@@ -5,5 +5,5 @@ __all__ = [
     'KafkaConfig',
 ]
 
-from extensions.kafka.config import KafkaConfig
-from extensions.kafka.consumer import KafkaEventConsumer
+from challenge_api.extensions.kafka.config import KafkaConfig
+from challenge_api.extensions.kafka.consumer import KafkaEventConsumer

@@ -1,6 +1,6 @@
 
-from exceptions.base_exceptions import CustomBaseException
-from exceptions.error_types import ApiErrorTypes
+from challenge_api.exceptions.base_exceptions import CustomBaseException
+from challenge_api.exceptions.error_types import ApiErrorTypes
 
 class UserChallengeException(CustomBaseException):
     """UserChallenge 관련 기본 예외"""

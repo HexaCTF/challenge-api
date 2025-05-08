@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import request
-from exceptions.api_exceptions import InvalidRequest
+from challenge_api.exceptions.api_exceptions import InvalidRequest
 
 def validate_request_body(*required_fields):
     """

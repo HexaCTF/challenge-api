@@ -1,10 +1,10 @@
-from db.models import UserChallenges
-from objects.challenge_info import ChallengeInfo
-from exceptions.api_exceptions import InternalServerError
+from challenge_api.db.models import UserChallenges
+from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.exceptions.api_exceptions import InternalServerError
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional
 
-from extensions_manager import db
+from challenge_api.extensions_manager import db
 
 class UserChallengesRepository:
     def __init__(self, session=None):

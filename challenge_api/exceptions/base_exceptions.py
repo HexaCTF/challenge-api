@@ -1,6 +1,6 @@
-# app/utils/exceptions.py
+# challenge_api/exceptions/base_exceptions.py
 
-from exceptions.error_types import ApiErrorTypes
+from challenge_api.exceptions.error_types import ApiErrorTypes
 
 class CustomBaseException(Exception):
      """

@@ -2,12 +2,12 @@ from json import JSONDecodeError
 from logging import log
 from flask import Blueprint, jsonify, request
 
-from exceptions.api_exceptions import InvalidRequest
-from exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError, UserChallengeNotFoundError
-from db.repository import UserChallengesRepository, UserChallengeStatusRepository
-from extensions.k8s.client import K8sClient
-from utils.api_decorators import validate_request_body
-from objects.challenge_info import ChallengeInfo
+from challenge_api.exceptions.api_exceptions import InvalidRequest
+from challenge_api.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError, UserChallengeNotFoundError
+from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
+from challenge_api.extensions.k8s.client import K8sClient
+from challenge_api.utils.api_decorators import validate_request_body
+from challenge_api.objects.challenge_info import ChallengeInfo
 
 challenge_bp = Blueprint('challenge', __name__)
 
@@ -23,7 +23,7 @@ def create_challenge():
     client = K8sClient()
     endpoint = client.create(data=challenge_info)
     if not endpoint:
-        raise UserChallengeCreationError(error_msg=f"Failed to create challenge {challenge_info.challenge_id} for user {challenge_info.username} : Endpoint did not exist")
+        raise UserChallengeCreationError(error_msg=f"Failed to create challenge {challenge_info.challenge_id} for user {challenge_info.name} : Endpoint did not exist")
     
     return jsonify({'data' : {'port': endpoint}}), 200
 
@@ -53,8 +53,11 @@ def get_userchallenge_status():
         challenge_info = ChallengeInfo(**res)
                 
         # 사용자 챌린지 상태 조회
+        userchallenge_repo = UserChallengesRepository()
+        userchallenge = userchallenge_repo.get_by_user_challenge_name(challenge_info.name)
+        
         repo = UserChallengeStatusRepository()
-        status = repo.get_recent_status(challenge_info)
+        status = repo.get_recent_status(userchallenge.idx)
         return jsonify({'data': {'port': status.port, 'status': status.status}}), 200
     except Exception as e:
         raise UserChallengeNotFoundError(error_msg=str(e))

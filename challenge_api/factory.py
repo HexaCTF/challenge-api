@@ -6,12 +6,12 @@ from flask import Flask, g, request
 from datetime import datetime
 from typing import Any, Dict, Type
 
-from api.challenge_api import challenge_bp
-from config import Config
-from exceptions.base_exceptions import CustomBaseException
-from extensions.kafka.handler import MessageHandler
-from extensions_manager import kafka_consumer, db
-from monitoring.loki_logger import FlaskLokiLogger
+from challenge_api.api.challenge_api import challenge_bp
+from challenge_api.config import Config
+from challenge_api.exceptions.base_exceptions import CustomBaseException
+from challenge_api.extensions.kafka.handler import MessageHandler
+from challenge_api.extensions_manager import kafka_consumer, db
+# rom challenge_api.monitoring.loki_logger import FlaskLokiLogger
 
 def start_kafka_consumer(app):
     """Start Kafka consumer in a separate thread"""

@@ -1,7 +1,7 @@
-from db.models import Challenges
-from extensions_manager import db
-from objects.challenge_info import ChallengeInfo
-from exceptions.api_exceptions import InternalServerError
+from challenge_api.db.models import Challenges
+from challenge_api.extensions_manager import db
+from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.exceptions.api_exceptions import InternalServerError
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional
 

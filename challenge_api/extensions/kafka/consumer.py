@@ -3,17 +3,18 @@ import logging
 from typing import Any, Dict
 from kafka import KafkaConsumer
 import json
-from exceptions.kafka_exceptions import QueueProcessingError
+from challenge_api.exceptions.kafka_exceptions import QueueProcessingError
 
 
 class StatusMessage:
    """상태 메시지를 표현하는 클래스"""
-   def __init__(self, user: str, problemId: str, newStatus: str, timestamp: str):
+   def __init__(self, userId: str, problemId: str, newStatus: str, timestamp: str, endpoint: str = None):
        # 메시지의 기본 속성들을 초기화
-       self.user = user          # 사용자 ID
+       self.userId = userId          # 사용자 ID
        self.problemId = problemId    # 문제 ID 
        self.newStatus = newStatus    # 새로운 상태
        self.timestamp = timestamp    # 타임스탬프
+       self.endpoint = endpoint      # 엔드포인트
 
    @classmethod
    def from_json(cls, data: Dict[str, Any]) -> 'StatusMessage':
@@ -26,15 +27,16 @@ class StatusMessage:
            StatusMessage 인스턴스
        """
        return cls(
-           user=data['user'],
+           userId=data['userId'],
            problemId=data['problemId'],
            newStatus=data['newStatus'],
-           timestamp=data['timestamp']
+           timestamp=data['timestamp'],
+           endpoint=data.get('endpoint')  # endpoint가 없을 수 있으므로 get 사용
        )
 
    def __str__(self) -> str:
        """객체를 문자열로 표현"""
-       return f"StatusMessage(user={self.user}, problemId={self.problemId}, newStatus={self.newStatus}, timestamp={self.timestamp})"
+       return f"StatusMessage(userId={self.userId}, problemId={self.problemId}, newStatus={self.newStatus}, timestamp={self.timestamp}, endpoint={self.endpoint})"
 
 class KafkaEventConsumer:
    """Kafka 이벤트 소비자 클래스"""

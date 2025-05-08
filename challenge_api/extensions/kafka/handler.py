@@ -1,15 +1,16 @@
 import logging
 from typing import Any, Dict
-from exceptions.kafka_exceptions import QueueProcessingError
-from db.repository import UserChallengesRepository
+from challenge_api.exceptions.kafka_exceptions import QueueProcessingError
+from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
+from challenge_api.objects.challenge_info import ChallengeInfo
 
 logger = logging.getLogger(__name__)
 
 class MessageHandler:
-    VALID_STATUSES = {'Creating', 'Running', 'Deleted', 'Error'}
+    VALID_STATUSES = {'Pending', 'Running', 'Deleted', 'Error'}
 
     @staticmethod
-    def validate_message(message: Dict[str, Any]) -> tuple[str, str, str, str]:
+    def validate_message(message: Dict[str, Any]) -> tuple[str, str, str, str, str]:
         """
         Kafka 메세지의 필수 필드를 검증하고 반환
         
@@ -17,26 +18,28 @@ class MessageHandler:
             message (Dict[str, Any]): Kafka 메세지
         
         Returns:
-            tuple[str, str, str, str]: 사용자 이름, 챌린지 ID, 새로운 상태, 타임스탬프
+            tuple[str, str, str, str, str]: 사용자 이름, 챌린지 ID, 새로운 상태, 타임스탬프, 엔드포인트
         """
         try:
-            username = message.user
+            user_id = message.userId
             problem_id = message.problemId
             new_status = message.newStatus
+            endpoint = message.endpoint
             timestamp = message.timestamp
         except AttributeError:
-            username = message['user']
+            user_id = message['userId']
             problem_id = message['problemId']
             new_status = message['newStatus']
             timestamp = message['timestamp']
+            endpoint = message.get('endpoint')  # endpoint가 없을 수 있으므로 get 사용
 
-        if not all([username, problem_id, new_status, timestamp]):
+        if not all([user_id, problem_id, new_status, timestamp]):
             raise QueueProcessingError(error_msg=f"Kafka Error : Missing required fields in message: {message}")
 
         if new_status not in MessageHandler.VALID_STATUSES:
             raise QueueProcessingError(error_msg=f"Kafka Error : Invalid status in message: {new_status}")
 
-        return username, problem_id, new_status, timestamp
+        return user_id, problem_id, new_status, timestamp, endpoint
 
     @staticmethod
     def handle_message(message: Dict[str, Any]):
@@ -47,21 +50,31 @@ class MessageHandler:
             message: Kafka 메세지        
         """
         try:
-            username, challenge_id, new_status, _ = MessageHandler.validate_message(message)
-            challenge_name = challenge_name = f"challenge-{challenge_id}-{username.lower()}"
+            user_id, challenge_id, new_status, _, endpoint = MessageHandler.validate_message(message)
+            challenge_info = ChallengeInfo(challenge_id=int(challenge_id), user_id=int(user_id))
+            challenge_name = challenge_info.name
             
             # 상태 정보 업데이트
-            repo = UserChallengesRepository()
-            user_challenge = repo.get_by_user_challenge_name(challenge_name)
-            logger.debug(f"Found user challenge {challenge_name} : {user_challenge}")
-            if user_challenge is None:
-                repo.create(username, challenge_id, challenge_name, 0, new_status)
-            logger.debug(f"Updating status of challenge {challenge_name} to {new_status}")
+            userchallenge_repo = UserChallengesRepository()
+            status_repo = UserChallengeStatusRepository()
             
-            success = repo.update_status(user_challenge, new_status)
-            if not success:
-                raise QueueProcessingError(error_msg=f"Kafka Error : Failed to update challenge status: {challenge_name}")
-        
+            if userchallenge_repo.is_exist(challenge_info):
+                userchallenge = userchallenge_repo.get_by_user_challenge_name(challenge_name)
+                recent_status = status_repo.get_recent_status(userchallenge.idx)
+                
+                if recent_status is None or new_status == 'Pending':
+                    # 상태가 없으면 새로 생성
+                    recent_status = status_repo.create(userchallenge_idx=userchallenge.idx, port=int(endpoint) if endpoint else 0)
+                    
+                elif new_status == 'Running' and endpoint:
+                    # Running 상태이고 endpoint가 있으면 포트 업데이트
+                    status_repo.update_port(recent_status.idx, int(endpoint))
+                
+                status_repo.update_status(recent_status.idx, new_status)
+                logger.info(f"Updated status for challenge {challenge_name} to {new_status} with endpoint {endpoint}")
+            else:
+                logger.warning(f"Challenge {challenge_name} does not exist")
+            
         except ValueError as e:
             raise QueueProcessingError(error_msg=f"Invalid message format {str(e)}") from e 
         except Exception as e:

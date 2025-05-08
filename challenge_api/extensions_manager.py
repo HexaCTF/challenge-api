@@ -4,7 +4,7 @@ from threading import Lock, Thread, Event
 from typing import Optional, Callable
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from extensions.kafka import KafkaConfig, KafkaEventConsumer
+from challenge_api.extensions.kafka import KafkaConfig, KafkaEventConsumer
 
 class FlaskKafkaConsumer:
     """Flask 애플리케이션에서 Kafka 메시지 소비를 관리하는 클래스"""

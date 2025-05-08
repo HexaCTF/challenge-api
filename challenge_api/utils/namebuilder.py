@@ -1,7 +1,7 @@
 from typing import Optional
 import re
 
-from objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge_info import ChallengeInfo
 
 class NameBuilder:
     def __init__(self, challenge_id: int, user_id: int):
@@ -10,7 +10,7 @@ class NameBuilder:
         
     def _is_valid_name(self, name:str) -> bool:
         """Kubernetes 리소스 이름 유효성 검사"""
-        name = self.challenge_name.lower()
+        name = name.lower()
         if not name or len(name) > 253:
             return False
         pattern = r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'

@@ -1,6 +1,6 @@
 from flask import jsonify
 
-from exceptions.base_exceptions import CustomBaseException
+from challenge_api.exceptions.base_exceptions import CustomBaseException
 
 def register_error_handler(app):
     """CustomBaseException을 처리하는 에러 핸들러"""

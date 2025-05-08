@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from enum import Enum
-from extensions_manager import db
+from challenge_api.extensions_manager import db
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 
