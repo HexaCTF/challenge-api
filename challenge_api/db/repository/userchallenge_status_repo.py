@@ -10,7 +10,7 @@ class UserChallengeStatusRepository:
     def __init__(self, session=None):
         self.session = session or db.session
     
-    def create(self, userchallenge_idx: int, port: int) -> Optional[UserChallenges_status]:
+    def create(self, userchallenge_idx: int, port: int, status: str) -> Optional[UserChallenges_status]:
         """
         새로운 사용자 챌린지 상태 생성
         
@@ -29,7 +29,7 @@ class UserChallengeStatusRepository:
 
             challenge_status = UserChallenges_status(
                 port=port,
-                status="None",
+                status=status,
                 userChallenge_idx=userchallenge_idx
             )
             self.session.add(challenge_status)
