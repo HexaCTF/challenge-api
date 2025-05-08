@@ -18,6 +18,7 @@ class FlaskKafkaConsumer:
     def init_app(self, app: Flask) -> None:
         """Flask 애플리케이션 초기화"""
         with self._lock:
+
             self.app = app
             config = KafkaConfig(
                 bootstrap_servers=[app.config['KAFKA_BOOTSTRAP_SERVERS']],
@@ -29,7 +30,7 @@ class FlaskKafkaConsumer:
 
             # teardown_appcontext 핸들러 등록
             app.teardown_appcontext(self.cleanup)
-    
+
     def cleanup(self, exception=None):
         """애플리케이션 컨텍스트 종료 시 정리"""
         self.stop_consuming()
@@ -53,20 +54,24 @@ class FlaskKafkaConsumer:
             )
             self._consumer_thread.start()
             print("Kafka consumer thread started", file=sys.stderr)
+
     def stop_consuming(self) -> None:
         """Thread-safe하게 메시지 소비 중지"""
         """메시지 소비 중지"""
         with self._lock:
+
             if self.consumer:
                 self._running.clear()
                 self.consumer.close()
                 self._consumer_thread = None
                 print("Kafka consumer stopped", file=sys.stderr)
+
     
     def _consume_messages(self, message_handler: Callable) -> None:
         """Thread-safe한 메시지 소비 루프"""
         with self.app.app_context():
             try:
+
                 while self._running.is_set():
                     try:
                         self.consumer.consume_events(message_handler)
@@ -79,6 +84,7 @@ class FlaskKafkaConsumer:
                 print(f"[ERROR] Fatal error in consumer thread: {e}", file=sys.stderr)
             finally:
                 print("Consumer thread ending", file=sys.stderr)
+
                 
 # 전역 인스턴스 생성
 db = SQLAlchemy()
