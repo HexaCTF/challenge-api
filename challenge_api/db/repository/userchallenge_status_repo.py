@@ -21,6 +21,7 @@ class UserChallengeStatusRepository:
         Returns:
             UserChallenges: 생성된 사용자 챌린지 상태
         """
+
         try:
             # Check if UserChallenge exists
             user_challenge = self.session.get(UserChallenges, userchallenge_idx)
@@ -33,8 +34,21 @@ class UserChallengeStatusRepository:
                 userChallenge_idx=userchallenge_idx
             )
             self.session.add(challenge_status)
+            self.session.flush()  # ID 생성을 위해 flush
+
+            if not challenge_status.idx:  # ID 확인
+                self.session.rollback()
+                raise InternalServerError(error_msg="Failed to create challenge status - no ID generated")
+
             self.session.commit()
-            return challenge_status
+
+            # DB에서 다시 조회하여 반환
+            created_status = self.session.get(UserChallenges_status, challenge_status.idx)
+            if not created_status:
+                raise InternalServerError(error_msg="Failed to retrieve created challenge status")
+
+            return created_status
+
         except SQLAlchemyError as e:
             self.session.rollback()
             raise InternalServerError(error_msg=f"Error creating challenge status in db: {e}") from e

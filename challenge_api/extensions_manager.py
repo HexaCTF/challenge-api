@@ -18,6 +18,27 @@ class FlaskKafkaConsumer:
     def init_app(self, app: Flask) -> None:
         """Flask 애플리케이션 초기화"""
         with self._lock:
+<<<<<<< HEAD
+            try:
+                self.app = app
+                print(f"Initializing Kafka consumer with bootstrap servers: {app.config['KAFKA_BOOTSTRAP_SERVERS']}", file=sys.stderr)
+                
+                config = KafkaConfig(
+                    bootstrap_servers=[app.config['KAFKA_BOOTSTRAP_SERVERS']],
+                    topic=app.config['KAFKA_TOPIC'],
+                    group_id=app.config['KAFKA_GROUP_ID'],
+                    value_deserializer=lambda x: json.loads(x.decode('utf-8')),
+                )
+                self.consumer = KafkaEventConsumer(config)
+                print("Kafka consumer initialized", file=sys.stderr)
+
+                # teardown_appcontext 핸들러 등록
+                app.teardown_appcontext(self.cleanup)
+            except Exception as e:
+                print(f"Failed to initialize Kafka consumer: {e}", file=sys.stderr)
+                raise
+    
+=======
 
             self.app = app
             config = KafkaConfig(
@@ -31,6 +52,7 @@ class FlaskKafkaConsumer:
             # teardown_appcontext 핸들러 등록
             app.teardown_appcontext(self.cleanup)
 
+>>>>>>> 5a6940c8b584e28d6994604a86fd82d691e85d64
     def cleanup(self, exception=None):
         """애플리케이션 컨텍스트 종료 시 정리"""
         self.stop_consuming()
@@ -38,6 +60,31 @@ class FlaskKafkaConsumer:
     def start_consuming(self, message_handler: Callable) -> None:
         """Thread-safe하게 메시지 소비 시작"""
         with self._lock:
+<<<<<<< HEAD
+            try:
+                if not self.consumer:
+                    print("Consumer not initialized", file=sys.stderr)
+                    return
+                    
+                if self._consumer_thread is not None:
+                    print("Consumer thread already running", file=sys.stderr)
+                    return
+                
+                print("Starting Kafka consumer thread", file=sys.stderr)
+                self._running.set()
+                self._consumer_thread = Thread(
+                    target=self._consume_messages,
+                    args=(message_handler,),
+                    daemon=True
+                )
+                self._consumer_thread.start()
+                print("Kafka consumer thread started", file=sys.stderr)
+            except Exception as e:
+                print(f"Error starting consumer: {e}", file=sys.stderr)
+                self._running.clear()
+                self._consumer_thread = None
+    
+=======
             if not self.consumer:
                 print("Consumer not initialized", file=sys.stderr)
                 return
@@ -55,6 +102,7 @@ class FlaskKafkaConsumer:
             self._consumer_thread.start()
             print("Kafka consumer thread started", file=sys.stderr)
 
+>>>>>>> 5a6940c8b584e28d6994604a86fd82d691e85d64
     def stop_consuming(self) -> None:
         """Thread-safe하게 메시지 소비 중지"""
         """메시지 소비 중지"""

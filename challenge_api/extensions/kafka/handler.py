@@ -99,32 +99,22 @@ class MessageHandler:
                 
             recent_status = status_repo.get_recent_status(userchallenge.idx)
             
-            # 포트 처리
-            try:
-                port = int(endpoint) if endpoint else 0
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid endpoint value: {endpoint}, using 0 as default")
-                port = 0
 
-            if not recent_status:
-                logger.info(f"Creating initial status for challenge {challenge_name}")
-                try:
+
+            try:
+                if new_status == 'Pending':
                     recent_status = status_repo.create(
                         userchallenge_idx=userchallenge.idx,
-                        port=port,
+                        port=0,
                         status='Pending'
                     )
-                    if not recent_status:
-                        raise QueueProcessingError(error_msg="Failed to create initial status")
-                    logger.info(f"Created initial status for challenge {challenge_name}")
-                except SQLAlchemyError as e:
-                    logger.error(f"Database error creating status: {str(e)}")
-                    raise QueueProcessingError(error_msg=f"Database error: {str(e)}")
+                
+                logger.info(f"Created initial status for challenge {challenge_name}")
+            except SQLAlchemyError as e:
+                logger.error(f"Database error creating status: {str(e)}")
+                raise QueueProcessingError(error_msg=f"Database error: {str(e)}")
             
-            # 상태 전이 검증
-            if not MessageHandler.validate_status_transition(recent_status.status, new_status):
-                logger.warning(f"Invalid status transition from {recent_status.status} to {new_status}")
-                return
+
             
             try:
                 if new_status == 'Running':
