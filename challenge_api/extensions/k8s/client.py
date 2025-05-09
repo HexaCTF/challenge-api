@@ -210,8 +210,10 @@ class K8sClient:
         # 1. 데이터베이스 작업
         try:
             log_info(f"Checking if challenge exists: {challenge_info.name}")
+            
             if not userchallenge_repo.is_exist(challenge_info):
                 log_info("Challenge does not exist, creating new one")
+                
                 userchallenge = userchallenge_repo.create(challenge_info)
                 log_info(f"Created UserChallenge with ID: {userchallenge.idx}")
                 status = userchallenge_status_repo.create(userchallenge_idx=userchallenge.idx, port=0, status='Pending')

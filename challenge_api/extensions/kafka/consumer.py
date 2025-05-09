@@ -4,6 +4,7 @@ from typing import Any, Dict
 from kafka import KafkaConsumer
 import json
 from challenge_api.exceptions.kafka_exceptions import QueueProcessingError
+import sys
 
 logger = logging.getLogger(__name__)
 class StatusMessage:
@@ -101,26 +102,41 @@ class KafkaEventConsumer:
            callback: 각 메시지를 처리할 콜백 함수
        """
        try:
+           print("[DEBUG] Starting to consume messages...", file=sys.stderr)
            for message in self.consumer:
                try:
+                   print(f"[DEBUG] Received raw message: {message}", file=sys.stderr)
+                   print(f"[DEBUG] Message value: {message.value}", file=sys.stderr)
+                   
                    # 메시지 파싱
                    status_msg = StatusMessage.from_json(message.value)
+                   print(f"[DEBUG] Parsed message: {status_msg}", file=sys.stderr)
+                   
+                   # 콜백 호출
+                   print("[DEBUG] Calling message handler...", file=sys.stderr)
                    callback(status_msg)
+                   print("[DEBUG] Message handler completed successfully", file=sys.stderr)
                    
                except json.JSONDecodeError as e:
                    # JSON 디코딩 오류 처리
-                   logger.error(f"Error decoding message: {e}")
+                   print(f"[ERROR] JSON decode error: {e}", file=sys.stderr)
+                   print(f"[ERROR] Raw message content: {message.value}", file=sys.stderr)
                    continue
                except KeyError as e:
                    # 필수 필드 누락 오류 처리
-                   logger.error(f"Missing required field in message: {e}")
+                   print(f"[ERROR] Missing required field: {e}", file=sys.stderr)
+                   print(f"[ERROR] Message content: {message.value}", file=sys.stderr)
                    continue
                except Exception as e:
                    # 기타 예외 처리
-                   logger.error(f"Error processing message: {e}")
+                   print(f"[ERROR] Error processing message: {e}", file=sys.stderr)
+                   print(f"[ERROR] Error type: {type(e)}", file=sys.stderr)
+                   print(f"[ERROR] Message content: {message.value}", file=sys.stderr)
                    continue
                
        except Exception as e:
+           print(f"[ERROR] Fatal error in consume_events: {e}", file=sys.stderr)
+           print(f"[ERROR] Error type: {type(e)}", file=sys.stderr)
            raise QueueProcessingError(error_msg=f"Kafka Error: {str(e)}") from e
 
    def close(self):

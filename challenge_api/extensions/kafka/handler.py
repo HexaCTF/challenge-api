@@ -21,33 +21,42 @@ class MessageHandler:
     def validate_message(message: Dict[str, Any]) -> tuple[str, str, str, str, str]:
         """
         Kafka 메세지의 필수 필드를 검증하고 반환
-        
-        Args:
-            message (Dict[str, Any]): Kafka 메세지
-        
-        Returns:
-            tuple[str, str, str, str, str]: 사용자 이름, 챌린지 ID, 새로운 상태, 타임스탬프, 엔드포인트
         """
         try:
-            user_id = message.userId
-            problem_id = message.problemId
-            new_status = message.newStatus
-            endpoint = message.endpoint
-            timestamp = message.timestamp
-        except AttributeError:
-            user_id = message['userId']
-            problem_id = message['problemId']
-            new_status = message['newStatus']
-            timestamp = message['timestamp']
-            endpoint = message.get('endpoint')  # endpoint가 없을 수 있으므로 get 사용
+            print(f"[DEBUG] Validating message: {message}", file=sys.stderr)
+            try:
+                user_id = message.userId
+                problem_id = message.problemId
+                new_status = message.newStatus
+                endpoint = message.endpoint
+                timestamp = message.timestamp
+                print("[DEBUG] Message accessed as object", file=sys.stderr)
+            except AttributeError:
+                print("[DEBUG] Message accessed as dictionary", file=sys.stderr)
+                user_id = message['userId']
+                problem_id = message['problemId']
+                new_status = message['newStatus']
+                timestamp = message['timestamp']
+                endpoint = message.get('endpoint')
 
-        if not all([user_id, problem_id, new_status, timestamp]):
-            raise QueueProcessingError(error_msg=f"Kafka Error : Missing required fields in message: {message}")
+            print(f"[DEBUG] Extracted values - user_id: {user_id}, problem_id: {problem_id}, new_status: {new_status}, timestamp: {timestamp}, endpoint: {endpoint}", file=sys.stderr)
 
-        if new_status not in MessageHandler.VALID_STATUSES:
-            raise QueueProcessingError(error_msg=f"Kafka Error : Invalid status in message: {new_status}")
+            if not all([user_id, problem_id, new_status, timestamp]):
+                error_msg = f"Kafka Error : Missing required fields in message: {message}"
+                print(f"[ERROR] {error_msg}", file=sys.stderr)
+                raise QueueProcessingError(error_msg=error_msg)
 
-        return user_id, problem_id, new_status, timestamp, endpoint
+            if new_status not in MessageHandler.VALID_STATUSES:
+                error_msg = f"Kafka Error : Invalid status in message: {new_status}"
+                print(f"[ERROR] {error_msg}", file=sys.stderr)
+                raise QueueProcessingError(error_msg=error_msg)
+
+            print("[DEBUG] Message validation successful", file=sys.stderr)
+            return user_id, problem_id, new_status, timestamp, endpoint
+        except Exception as e:
+            print(f"[ERROR] Message validation failed: {e}", file=sys.stderr)
+            print(f"[ERROR] Error type: {type(e)}", file=sys.stderr)
+            raise
 
     @staticmethod
     def validate_status_transition(current_status: str, new_status: str) -> bool:
