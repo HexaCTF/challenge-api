@@ -50,6 +50,30 @@ class KafkaEventConsumer:
        self.config = config
        self._consumer = None  # 실제 Kafka 소비자 인스턴스
 
+   def bootstrap_connected(self) -> bool:
+       """Kafka 브로커와의 연결 상태를 확인
+
+       Returns:
+           bool: 연결 성공 여부
+       """
+       try:
+           if not self._consumer:
+               self._consumer = KafkaConsumer(
+                   self.config.topic,
+                   **self.config.consumer_config
+               )
+           
+           # 브로커 연결 상태 확인
+           node_info = self._consumer.cluster.brokers()
+           if not node_info:
+               logger.error("No brokers available")
+               return False
+               
+           return True
+       except Exception as e:
+           logger.error(f"Error checking bootstrap connection: {e}")
+           return False
+
    @property
    def consumer(self):
        """

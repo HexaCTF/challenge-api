@@ -26,7 +26,7 @@ class FlaskKafkaConsumer:
                     bootstrap_servers=[app.config['KAFKA_BOOTSTRAP_SERVERS']],
                     topic=app.config['KAFKA_TOPIC'],
                     group_id=app.config['KAFKA_GROUP_ID'],
-                    value_deserializer=lambda x: json.loads(x.decode('utf-8')),
+                    
                 )
                 self.consumer = KafkaEventConsumer(config)
                 print("Kafka consumer initialized", file=sys.stderr)
@@ -37,7 +37,7 @@ class FlaskKafkaConsumer:
                 print(f"Failed to initialize Kafka consumer: {e}", file=sys.stderr)
                 raise
     
-
+    def cleanup(self, exception=None) -> None:
         """애플리케이션 컨텍스트 종료 시 정리"""
         self.stop_consuming()
     
@@ -84,8 +84,7 @@ class FlaskKafkaConsumer:
         """Thread-safe한 메시지 소비 루프"""
         with self.app.app_context():
             try:
-
-                print(f"Trying to connect to Kafka at {self.consumer.config['bootstrap_servers']}", file=sys.stderr)
+                print(f"Trying to connect to Kafka at {self.consumer.config.bootstrap_servers}", file=sys.stderr)
                 # 연결 상태 확인
                 if not self.consumer.bootstrap_connected():
                     print("Failed to connect to Kafka brokers", file=sys.stderr)

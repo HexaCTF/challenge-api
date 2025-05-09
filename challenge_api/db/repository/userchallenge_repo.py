@@ -3,8 +3,10 @@ from challenge_api.objects.challenge_info import ChallengeInfo
 from challenge_api.exceptions.api_exceptions import InternalServerError
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional
+import sys
 
 from challenge_api.extensions_manager import db
+from challenge_api.db.repository.challenge_repo import ChallengeRepository
 
 class UserChallengesRepository:
     def __init__(self, session=None):
@@ -23,18 +25,33 @@ class UserChallengesRepository:
             InternalServerError: DB 작업 실패시
         """
         try:
+            # 먼저 Challenge가 존재하는지 확인
+            challenge_repo = ChallengeRepository(self.session)
+            if not challenge_repo.is_exist(challenge_info.challenge_id):
+                error_msg = f"Challenge with id {challenge_info.challenge_id} does not exist"
+                print(f"[ERROR] {error_msg}", file=sys.stderr)
+                raise InternalServerError(error_msg=error_msg)
+            
             challenge = UserChallenges(
                 C_idx=challenge_info.challenge_id,
                 user_idx=challenge_info.user_id,
                 userChallengeName=challenge_info.name,
             )
+            print(f"[DEBUG] Creating UserChallenge: {challenge.__dict__}", file=sys.stderr)
             self.session.add(challenge)
             self.session.commit()
             return challenge
             
         except SQLAlchemyError as e:
             self.session.rollback()
-            raise InternalServerError(error_msg=f"Error creating challenge in db: {e}") from e
+            error_msg = f"Error creating challenge in db: {str(e)}"
+            print(f"[ERROR] {error_msg}", file=sys.stderr)
+            raise InternalServerError(error_msg=error_msg) from e
+        except Exception as e:
+            self.session.rollback()
+            error_msg = f"Unexpected error creating challenge: {str(e)}"
+            print(f"[ERROR] {error_msg}", file=sys.stderr)
+            raise InternalServerError(error_msg=error_msg) from e
 
     def get_by_user_challenge_name(self, userChallengeName: str) -> Optional[UserChallenges]:
         """
