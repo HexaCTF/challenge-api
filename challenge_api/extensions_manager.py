@@ -1,5 +1,6 @@
 import sys
 import json
+import traceback
 from threading import Lock, Thread, Event
 from typing import Optional, Callable
 from flask import Flask
@@ -99,17 +100,7 @@ class FlaskKafkaConsumer:
                         self.consumer.consume_events(message_handler)
                     except Exception as e:
                         print(f"Error consuming messages: {e}", file=sys.stderr)
-                        if self._running.is_set():
-                            print(f"Attempting to reconnect in {reconnect_delay} seconds...", file=sys.stderr)
-                            self._running.wait(timeout=reconnect_delay)
-                            # 지수 백오프로 재연결 대기 시간 증가
-                            reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)
-                            # 재연결 시도
-                            if not self.consumer.bootstrap_connected():
-                                print("Failed to reconnect to Kafka brokers", file=sys.stderr)
-                                continue
-                            print("Successfully reconnected to Kafka", file=sys.stderr)
-                            reconnect_delay = 5.0  # 성공하면 대기 시간 초기화
+                        traceback.print_exc()
             except Exception as e:
                 print(f"[ERROR] Fatal error in consumer thread: {e}", file=sys.stderr)
             finally:
