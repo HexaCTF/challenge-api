@@ -98,7 +98,7 @@ class UserChallenges(db.Model):
 
 # UserChallenges_status Table Model
 class UserChallenges_status(db.Model):
-    __tablename__ = 'UserChallenges_Status'
+    __tablename__ = 'UserChallengesStatus'
 
     idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
     port = db.Column(db.Integer, nullable=False)
