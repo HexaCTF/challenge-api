@@ -22,6 +22,7 @@ def create_challenge():
     # 챌린지 생성 
     client = K8sClient()
     endpoint = client.create(data=challenge_info)
+    
     if not endpoint:
         raise UserChallengeCreationError(error_msg=f"Failed to create challenge {challenge_info.challenge_id} for user {challenge_info.name} : Endpoint did not exist")
     
