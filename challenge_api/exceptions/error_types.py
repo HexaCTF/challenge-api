@@ -32,6 +32,13 @@ class ApiErrorTypes(str, Enum):
     CHALLENGE_DELETION_FAILED = "CHALLENGE_DELETION_FAILED"  # Challenge 삭제 실패
 
     # =========================================================================
+    # Challenge Info 관련 에러
+    # =========================================================================
+    CHALLENGE_INFO_NOT_FOUND = "CHALLENGE_INFO_NOT_FOUND"  # Challenge Info를 찾을 수 없음
+    CHALLENGE_INFO_CREATE_ERROR = "CHALLENGE_INFO_CREATE_ERROR"  # Challenge Info 생성 실패
+    CHALLENGE_INFO_UPDATE_ERROR = "CHALLENGE_INFO_UPDATE_ERROR"  # Challenge Info 업데이트 실패
+    CHALLENGE_INFO_GET_ERROR = "CHALLENGE_INFO_GET_ERROR"  # Challenge Info 조회 실패
+    # =========================================================================
     # 리소스 관련 에러
     # =========================================================================
     RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND"               # 리소스를 찾을 수 없음

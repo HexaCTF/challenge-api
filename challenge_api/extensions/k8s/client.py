@@ -1,14 +1,13 @@
-import os
-import re
-import time
-
 from kubernetes import client, config, watch
+from kubernetes.client.rest import ApiException
+import time
 
 from challenge_api.exceptions.challenge_exceptions import ChallengeNotFound
 from challenge_api.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError
-from challenge_api.db.repository import ChallengeRepository, UserChallengesRepository, UserChallengeStatusRepository
+from challenge_api.db.repository import ChallengeRepository, UserChallengesRepository, UserChallengeStatusRepository, UserChallengeInfoRepository
 from challenge_api.objects.challenge_info import ChallengeInfo
 from challenge_api.utils.namebuilder import NameBuilder
+from challenge_api.extensions_manager import logger
 MAX_RETRIES = 3
 SLEEP_INTERVAL = 2
 
@@ -46,31 +45,137 @@ class K8sClient:
             UserChallengeCreationError: Challenge Custom Resource 생성에 실패했을 때
         """
         
-        # Repository 
-        userchallenge_repo = UserChallengesRepository()
-        userchallenge_status_repo = UserChallengeStatusRepository()
         
-        # user id를 숫자 대신에 문자로 표현 
-        challenge_id, user_id = data.challenge_id, str(data.user_id)
         
-        namebuilder = NameBuilder(challenge_id=challenge_id, user_id=user_id)
-        challenge_info= namebuilder.build()
-        
-        # Database에 UserChallenge 생성
-         
-        if not userchallenge_repo.is_exist(challenge_info):
-            userchallenge = userchallenge_repo.create(challenge_info)
-            # Create initial status with Pending state
-            userchallenge_status_repo.create(userchallenge_idx=userchallenge.idx, port=0)
-        else:
-            userchallenge = userchallenge_repo.get_by_user_challenge_name(challenge_info.name)
-            recent = userchallenge_status_repo.get_recent_status(userchallenge.idx)
-            # 이미 실행 중인 Challenge가 있으면 데이터베이스에 저장된 포트 번호 반환
-            if recent and recent.status == 'Running':
-                return recent.port
-        
+        try:
+            # Repository 
+            userchallenge_repo = UserChallengesRepository()
             
-        # Challenge definition 조회
+            # user id를 숫자 대신에 문자로 표현 
+            challenge_id, user_id = data.challenge_id, str(data.user_id)
+            logger.info(f"Creating challenge", extra={
+                'challenge_id': challenge_id,
+                'user_id': user_id,
+                'operation': 'create_challenge'
+            })
+
+            namebuilder = NameBuilder(challenge_id=challenge_id, user_id=user_id)
+            challenge_info = namebuilder.build()
+
+            # Database에 UserChallenge 생성
+            userchallenge = None 
+            if not userchallenge_repo.is_exist(challenge_info):
+                logger.debug("Creating new userchallenge", extra={
+                    'challenge_name': challenge_info.name,
+                    'operation': 'create_userchallenge'
+                })
+                userchallenge = userchallenge_repo.create(challenge_info=challenge_info)
+            else:
+                logger.debug("Fetching existing userchallenge", extra={
+                    'challenge_name': challenge_info.name,
+                    'operation': 'get_userchallenge'
+                })
+                userchallenge = userchallenge_repo.get_by_user_challenge_name(challenge_info.name)
+
+            if not userchallenge:
+                raise UserChallengeCreationError(error_msg=f"Failed to create userchallenge: {challenge_info.name}")
+            
+            
+            manifest = self._get_definition_manifest(challenge_info)
+            logger.debug("Creating k8s challenge resource", extra={
+                'challenge_name': challenge_info.name,
+                'manifest': manifest,
+                'operation': 'create_k8s_resource'
+            })
+            _ = self.custom_api.create_namespaced_custom_object(
+                group="apps.hexactf.io",
+                version="v2alpha1",
+                namespace=namespace,
+                plural="challenges",
+                body=manifest
+            )
+        
+            status = None
+            endpoint = 0
+            field_selector = f"apps.hexactf.io/challengeId={challenge_id},apps.hexactf.io/userId={user_id}"
+            
+            logger.debug("Waiting for challenge status", extra={
+                'challenge_name': challenge_info.name,
+                'field_selector': field_selector,
+                'operation': 'wait_challenge_status'
+            })
+            
+            w = watch.Watch()
+            for event in w.stream(self.custom_api.list_namespaced_custom_object,
+                                  group="apps.hexactf.io",
+                                  version="v2alpha1",
+                                  namespace=namespace,
+                                  label_selector=field_selector,
+                                  plural="challenges",
+                                  ):
+                obj = event['object']
+
+                if obj.get('status', {}).get('currentStatus', {}).get('status',"") == 'Running':
+                    status = event['object']['status']
+                    endpoint = status.get('endpoint')
+                    logger.info("Challenge is running", extra={
+                        'challenge_name': challenge_info.name,
+                        'endpoint': endpoint,
+                        'operation': 'challenge_running'
+                    })
+                    w.stop()
+                    break
+            
+            if not endpoint:
+                logger.error("Failed to get endpoint", extra={
+                    'challenge_name': challenge_info.name,
+                    'operation': 'get_endpoint_failed'
+                })
+                raise UserChallengeCreationError(error_msg=f"Failed to get NodePort for Challenge: {challenge_info.name}")
+            
+            userchallenge_info_repo = UserChallengeInfoRepository()
+            userchallenge_info_repo.create(userChallenge_idx=userchallenge.idx, status='Running', port=int(endpoint))
+            
+            logger.info("Challenge created successfully", extra={
+                'challenge_name': challenge_info.name,
+                'endpoint': endpoint,
+                'operation': 'challenge_created'
+            })
+            return endpoint
+        
+        
+        except ApiException as e:
+            # conflict
+            if e.status == 409:
+                logger.warning("Challenge already exists, attempting deletion", extra={
+                    'challenge_name': challenge_info.name,
+                    'error': str(e),
+                    'operation': 'handle_conflict'
+                })
+                self.delete(challenge_info=challenge_info)
+                
+            logger.error("Kubernetes API error", extra={
+                'challenge_name': challenge_info.name if 'challenge_info' in locals() else None,
+                'error': str(e),
+                'status_code': e.status if hasattr(e, 'status') else None,
+                'operation': 'k8s_api_error'
+            })
+            raise UserChallengeCreationError(error_msg=str(e)) from e
+        except Exception as e:
+            logger.error("Unexpected error during challenge creation", extra={
+                'challenge_name': challenge_info.name if 'challenge_info' in locals() else None,
+                'error': str(e),
+                'error_type': type(e).__name__,
+                'operation': 'unexpected_error'
+            })
+            raise UserChallengeCreationError(error_msg=str(e)) from e
+        
+        
+
+    def _get_definition_manifest(self, challenge_info:ChallengeInfo) -> dict:
+        challenge_id, user_id, challenge_name = challenge_info.challenge_id, challenge_info.user_id, challenge_info.name
+        
+        # Definition 조회 
         challenge_definition = ChallengeRepository.get_challenge_name(challenge_id)
         if not challenge_definition:
             raise ChallengeNotFound(error_msg=f"Challenge definition not found for ID: {challenge_id}")
@@ -92,113 +197,40 @@ class K8sClient:
             "apiVersion": "apps.hexactf.io/v2alpha1",
             "kind": "Challenge",
             "metadata": {
-                "name": challenge_info.name,
+                "name": challenge_name,
                 "labels": {
                     "apps.hexactf.io/challengeId": str(challenge_id),
-                    "apps.hexactf.io/userId": user_id
+                    "apps.hexactf.io/userId": str(user_id)
                 }
             },
             "spec": {
-                "namespace": namespace,
+                "namespace": "challenge",
                 "definition": challenge_definition
             }
         }
-            
-        challenge = self.custom_api.create_namespaced_custom_object(
-            group="apps.hexactf.io",
-            version="v2alpha1",
-            namespace=namespace,
-            plural="challenges",
-            body=challenge_manifest
-        )
-        
-        status = None
-        endpoint = 0
-        field_selector = f"apps.hexactf.io/challengeId={challenge_id},apps.hexactf.io/userId={user_id}"
+        return challenge_manifest
+    
+    def _is_deleted(self, challenge_info: ChallengeInfo, namespace="challenge"):
+        field_selector = f"apps.hexactf.io/challengeId={challenge_info.challenge_id},apps.hexactf.io/userId={challenge_info.user_id}"
         w = watch.Watch()
-        for event in w.stream(self.custom_api.list_namespaced_custom_object,
-                              group="apps.hexactf.io",
-                              version="v2alpha1",
-                              namespace=namespace,
-                              label_selector=field_selector,
-                              plural="challenges",
-                              ):
-            obj = event['object']
-            
-            if obj.get('status', {}).get('currentStatus', {}).get('status',"") == 'Running':
-                status = event['object']['status']
-                endpoint = status.get('endpoint')
-                w.stop()
-                break
-
-
-        # status가 아직 설정되지 않았을 수 있으므로, 필요한 경우 다시 조회
-        # if not status:
-        #     time.sleep(3)  
-        #     challenge = self.custom_api.get_namespaced_custom_object(
-        #         group="apps.hexactf.io",
-        #         version="v1alpha1",
-        #         namespace=namespace,
-        #         plural="challenges",
-        #         name=challenge['metadata']['name']
-        #     )
-        #     status = challenge.get('status', {})
-        #     endpoint = status.get('endpoint')
-        
-        # NodePort 업데이트
-        if not endpoint:
-            raise UserChallengeCreationError(error_msg=f"Failed to get NodePort for Challenge: {challenge_info.name}")
-        
-        return endpoint
-        
-
-    # TODO: 별도의 Validator로 분리 
-    # def _normalize_k8s_name(self, name: str) -> str:
-    #     """
-    #     Kubernetes 리소스 이름을 유효한 형식으로 변환 (소문자 + 공백을 하이픈으로 변경)
-
-    #     Args:
-    #         name (str): 원본 이름
-
-    #     Returns:
-    #         str: 변환된 Kubernetes 리소스 이름
-    #     """
-    #     if not name or len(name) > 253:
-    #         raise ValueError("이름이 비어있거나 길이가 253자를 초과함")
-
-    #     name = name.lower()
-    #     name = re.sub(r'[^a-z0-9-]+', '-', name)
-    #     name = re.sub(r'-+', '-', name)
-    #     name = name.strip('-')
-
-    #     # 최종 길이 검사 (1~253자)
-    #     if not name or len(name) > 253:
-    #         raise ValueError(f"변환 후에도 유효하지 않은 Kubernetes 리소스 이름: {name}")
-
-    #     return name
-
-    # def _is_valid_k8s_name(self, name: str) -> bool:
-    #     """
-    #     Kubernetes 리소스 이름 유효성 검사
-        
-    #     Args:
-    #         name (str): 검사할 이름
-            
-    #     Returns:
-    #         bool: 유효한 이름인지 여부
-    #     """
-        
-    #     # 소문자로 변환 
-    #     name = name.lower()
-        
-    #     # Kubernetes naming convention 검사
-    #     if not name or len(name) > 253:
-    #         return False
-        
-    #     # DNS-1123 label 규칙 검사
-    #     import re
-    #     pattern = r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
-    #     return bool(re.match(pattern, name))
+        try:
+            for event in w.stream(self.custom_api.list_namespaced_custom_object,
+                                  group="apps.hexactf.io",
+                                  version="v2alpha1",
+                                  namespace=namespace,
+                                  label_selector=field_selector,
+                                  plural="challenges",
+                                  timeout_seconds=30):
+                if event['type'] == 'Deleted':
+                    w.stop()
+                    return True
+        except ApiException as e:
+            raise UserChallengeDeletionError(error_msg=str(e)) from e
+        except Exception as e:
+            raise UserChallengeDeletionError(error_msg=str(e)) from e
+        finally:
+            w.stop()
+            return False
     
     def delete(self, challenge_info: ChallengeInfo, namespace="challenge"):
         """
@@ -212,16 +244,22 @@ class K8sClient:
             UserChallengeDeletionError: Challenge 삭제에 실패했을 때
         """
         
-        # UserChallenge 조회
-        namebuilder = NameBuilder(challenge_id=challenge_info.challenge_id, user_id=challenge_info.user_id)
-        challenge_info = namebuilder.build()
-        user_challenge_repo = UserChallengesRepository()
-        user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_info.name)
-        if not user_challenge:
-            raise UserChallengeDeletionError(error_msg=f"Deletion : UserChallenge not found: {challenge_info.name}")
         
         # 사용자 챌린지(컨테이너) 삭제 
         try:
+            namebuilder = NameBuilder(challenge_id=challenge_info.challenge_id, user_id=challenge_info.user_id)
+            challenge_info = namebuilder.build()
+
+            # UserChallenge 조회
+            user_challenge_repo = UserChallengesRepository()
+            if not user_challenge_repo.is_exist(challenge_info):
+                raise UserChallengeDeletionError(error_msg=f"Deletion : UserChallenge not found: {challenge_info.name}")
+            
+            user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_info.name)
+            if not user_challenge:
+                raise UserChallengeDeletionError(error_msg=f"Deletion : UserChallenge not found: {challenge_info.name}")
+            
+            # Delete Kubernetes Resources
             self.custom_api.delete_namespaced_custom_object(
                 group="apps.hexactf.io",
                 version="v2alpha1",
@@ -230,6 +268,18 @@ class K8sClient:
                 name=challenge_info.name
             )
             
+            # isDeleted = self._is_deleted(challenge_info)
+            # if not isDeleted:
+            #     raise UserChallengeDeletionError(error_msg=f"Deletion : Failed to delete challenge: {challenge_info.name}")
+            time.sleep(3)
+            # Update the status in database
+            userchallenge_info_repo = UserChallengeInfoRepository()
+            info = userchallenge_info_repo.get_first(userChallenge_idx=user_challenge.idx)
+            userchallenge_info_repo.update_status(info, 'Deleted')
+            
+        except ApiException as e:            
+            # Kubernetes API 에러 
+            raise UserChallengeDeletionError(error_msg=str(e)) from e
         except Exception as e:
             raise UserChallengeDeletionError(error_msg=str(e)) from e
  
