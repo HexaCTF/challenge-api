@@ -46,10 +46,12 @@ class UserChallengesRepository:
         Returns:
             UserChallenges: 사용자 챌린지
         """
-        user_challenge = UserChallenges.query.filter_by(userChallengeName=userChallengeName).first()
-        if not user_challenge:
-            return None
-        return user_challenge
+        try:
+            user_challenge = UserChallenges.query.filter_by(userChallengeName=userChallengeName).first()
+            return user_challenge
+        except SQLAlchemyError as e:
+            raise InternalServerError(error_msg=f"Error getting challenge by name in db: {e}") from e
+        
         
     def is_running(self, challenge: UserChallenges) -> bool:
         """

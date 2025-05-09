@@ -136,13 +136,20 @@ class K8sClient:
             status_repo (UserChallengeStatusRepository): 상태 저장소
         """
         try:
-        #     recent_status = status_repo.get_recent_status(userchallenge.idx)
-        #     if recent_status:
-        #         status_repo.update_status(recent_status.idx, 'Running')
-        #         status_repo.update_port(recent_status.idx, endpoint)
-        #     else:
-                status_repo.create(userchallenge_idx=userchallenge.idx, port=endpoint, status='Running')
+            # First check if there's an existing status
+            recent_status = status_repo.get_recent_status(userchallenge.idx)
+            if recent_status:
+                print(f"Updating existing status for challenge {userchallenge.idx} to Running with port {endpoint}")
+                status_repo.update_status(recent_status.idx, 'Running')
+                status_repo.update_port(recent_status.idx, endpoint)
+            else:
+                print(f"Creating new status for challenge {userchallenge.idx} with port {endpoint}")
+                new_status = status_repo.create(userchallenge_idx=userchallenge.idx, port=endpoint, status='Running')
+                if not new_status:
+                    raise UserChallengeCreationError(error_msg="Failed to create status - no status object returned")
+                print(f"Successfully created status with ID {new_status.idx}")
         except Exception as e:
+            print(f"Error in _update_challenge_status: {str(e)}")
             raise UserChallengeCreationError(error_msg=f"Failed to update challenge status: {str(e)}")
 
     def create(self, data: ChallengeInfo, namespace="challenge") -> int:
@@ -160,6 +167,9 @@ class K8sClient:
             ChallengeNotFound: Challenge ID에 해당하는 Challenge가 없을 때
             UserChallengeCreationError: Challenge Custom Resource 생성에 실패했을 때
         """
+        print("=== Starting Challenge Creation ===")
+        print(f"Challenge Info - ID: {data.challenge_id}, User ID: {data.user_id}")
+        
         userchallenge_repo = UserChallengesRepository()
         userchallenge_status_repo = UserChallengeStatusRepository()
         challenge_id, user_id = data.challenge_id, str(data.user_id)
@@ -169,18 +179,26 @@ class K8sClient:
         
         # 1. 데이터베이스 작업
         try:
+            print(f"Checking if challenge exists: {challenge_info.name}")
             if not userchallenge_repo.is_exist(challenge_info):
+                print("Challenge does not exist, creating new one")
                 userchallenge = userchallenge_repo.create(challenge_info)
-                userchallenge_status_repo.create(userchallenge_idx=userchallenge.idx, port=0, status='Pending')
+                print(f"Created UserChallenge with ID: {userchallenge.idx}")
+                status = userchallenge_status_repo.create(userchallenge_idx=userchallenge.idx, port=0, status='Pending')
+                print(f"Created initial status: {status.idx if status else 'Failed'}")
             else:
+                print("Challenge exists, retrieving existing one")
                 userchallenge = userchallenge_repo.get_by_user_challenge_name(challenge_info.name)
                 if not userchallenge:
                     raise UserChallengeCreationError(error_msg=f"Failed to retrieve existing challenge: {challenge_info.name}")
                 
+                print(f"Retrieved UserChallenge with ID: {userchallenge.idx}")
                 recent = userchallenge_status_repo.get_recent_status(userchallenge.idx)
                 if recent and recent.status == 'Running':
+                    print(f"Challenge is already running with port: {recent.port}")
                     return recent.port
         except Exception as e:
+            print(f"Database operation failed: {str(e)}")
             raise UserChallengeCreationError(error_msg=f"Database operation failed: {str(e)}")
         
         # 2. Challenge definition 조회
