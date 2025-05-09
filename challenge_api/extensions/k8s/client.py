@@ -136,11 +136,11 @@ class K8sClient:
             status_repo (UserChallengeStatusRepository): 상태 저장소
         """
         try:
-            recent_status = status_repo.get_recent_status(userchallenge.idx)
-            if recent_status:
-                status_repo.update_status(recent_status.idx, 'Running')
-                status_repo.update_port(recent_status.idx, endpoint)
-            else:
+        #     recent_status = status_repo.get_recent_status(userchallenge.idx)
+        #     if recent_status:
+        #         status_repo.update_status(recent_status.idx, 'Running')
+        #         status_repo.update_port(recent_status.idx, endpoint)
+        #     else:
                 status_repo.create(userchallenge_idx=userchallenge.idx, port=endpoint, status='Running')
         except Exception as e:
             raise UserChallengeCreationError(error_msg=f"Failed to update challenge status: {str(e)}")
