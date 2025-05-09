@@ -60,6 +60,7 @@ class KafkaEventConsumer:
            if not self._consumer:
                self._consumer = KafkaConsumer(
                    self.config.topic,
+                   value_deserializer=lambda x: json.loads(x.decode('utf-8')),
                    **self.config.consumer_config
                )
            
@@ -84,12 +85,11 @@ class KafkaEventConsumer:
            try:
                self._consumer = KafkaConsumer(
                    self.config.topic,
-                   # 바이트 문자열을 JSON으로 자동 변환하는 deserializer 설정
                    value_deserializer=lambda x: json.loads(x.decode('utf-8')),
                    **self.config.consumer_config
                )
            except Exception as e:
-            #    logger.error(f"Failed to create consumer: {e}")
+               logger.error(f"Failed to create consumer: {e}")
                raise QueueProcessingError(error_msg=f"Failed to create consumer: {e}") from e
        return self._consumer
 

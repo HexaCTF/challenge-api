@@ -91,6 +91,8 @@ class FlaskKafkaConsumer:
                     return
                 print("Successfully connected to Kafka", file=sys.stderr)
                 
+                reconnect_delay = 5.0  # 초기 재연결 대기 시간
+                max_reconnect_delay = 60.0  # 최대 재연결 대기 시간
 
                 while self._running.is_set():
                     try:
@@ -98,8 +100,16 @@ class FlaskKafkaConsumer:
                     except Exception as e:
                         print(f"Error consuming messages: {e}", file=sys.stderr)
                         if self._running.is_set():
-                            print("Attempting to reconnect...", file=sys.stderr)
-                            self._running.wait(timeout=5.0)
+                            print(f"Attempting to reconnect in {reconnect_delay} seconds...", file=sys.stderr)
+                            self._running.wait(timeout=reconnect_delay)
+                            # 지수 백오프로 재연결 대기 시간 증가
+                            reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)
+                            # 재연결 시도
+                            if not self.consumer.bootstrap_connected():
+                                print("Failed to reconnect to Kafka brokers", file=sys.stderr)
+                                continue
+                            print("Successfully reconnected to Kafka", file=sys.stderr)
+                            reconnect_delay = 5.0  # 성공하면 대기 시간 초기화
             except Exception as e:
                 print(f"[ERROR] Fatal error in consumer thread: {e}", file=sys.stderr)
             finally:
