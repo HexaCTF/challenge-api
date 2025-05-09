@@ -5,7 +5,7 @@ from kafka import KafkaConsumer
 import json
 from challenge_api.exceptions.kafka_exceptions import QueueProcessingError
 
-
+logger = logging.getLogger(__name__)
 class StatusMessage:
    """상태 메시지를 표현하는 클래스"""
    def __init__(self, userId: str, problemId: str, newStatus: str, timestamp: str, endpoint: str = None):
@@ -85,15 +85,15 @@ class KafkaEventConsumer:
                    
                except json.JSONDecodeError as e:
                    # JSON 디코딩 오류 처리
-                #    logger.error(f"Error decoding message: {e}")
+                   logger.error(f"Error decoding message: {e}")
                    continue
                except KeyError as e:
                    # 필수 필드 누락 오류 처리
-                #    logger.error(f"Missing required field in message: {e}")
+                   logger.error(f"Missing required field in message: {e}")
                    continue
                except Exception as e:
                    # 기타 예외 처리
-                #    logger.error(f"Error processing message: {e}")
+                   logger.error(f"Error processing message: {e}")
                    continue
                
        except Exception as e:
