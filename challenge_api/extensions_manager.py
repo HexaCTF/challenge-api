@@ -95,12 +95,12 @@ class FlaskKafkaConsumer:
                 reconnect_delay = 5.0  # 초기 재연결 대기 시간
                 max_reconnect_delay = 60.0  # 최대 재연결 대기 시간
 
-                while self._running.is_set():
-                    try:
-                        self.consumer.consume_events(message_handler)
-                    except Exception as e:
-                        print(f"Error consuming messages: {e}", file=sys.stderr)
-                        traceback.print_exc()
+                
+                try:
+                    self.consumer.consume_events(message_handler)
+                except Exception as e:
+                    print(f"Error consuming messages: {e}", file=sys.stderr)
+                    traceback.print_exc()
             except Exception as e:
                 print(f"[ERROR] Fatal error in consumer thread: {e}", file=sys.stderr)
             finally:
