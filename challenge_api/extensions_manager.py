@@ -84,27 +84,38 @@ class FlaskKafkaConsumer:
     def _consume_messages(self, message_handler: Callable) -> None:
         """Thread-safe한 메시지 소비 루프"""
         with self.app.app_context():
-            try:
-                print(f"Trying to connect to Kafka at {self.consumer.config.bootstrap_servers}", file=sys.stderr)
-                # 연결 상태 확인
-                if not self.consumer.bootstrap_connected():
-                    print("Failed to connect to Kafka brokers", file=sys.stderr)
-                    return
-                print("Successfully connected to Kafka", file=sys.stderr)
-                
-                reconnect_delay = 5.0  # 초기 재연결 대기 시간
-                max_reconnect_delay = 60.0  # 최대 재연결 대기 시간
+            reconnect_delay = 5.0  # 초기 재연결 대기 시간
+            max_reconnect_delay = 60.0  # 최대 재연결 대기 시간
 
-                while self._running.is_set():
-                    try:
-                        self.consumer.consume_events(message_handler)
-                    except Exception as e:
-                        print(f"Error consuming messages: {e}", file=sys.stderr)
-                        traceback.print_exc()
-            except Exception as e:
-                print(f"[ERROR] Fatal error in consumer thread: {e}", file=sys.stderr)
-            finally:
-                print("Consumer thread ending", file=sys.stderr)
+            while self._running.is_set():
+                try:
+                    print(f"Trying to connect to Kafka at {self.consumer.config.bootstrap_servers}", file=sys.stderr)
+                    # 연결 상태 확인
+                    if not self.consumer.bootstrap_connected():
+                        print("Failed to connect to Kafka brokers", file=sys.stderr)
+                        print(f"Waiting {reconnect_delay} seconds before retrying...", file=sys.stderr)
+                        self._running.wait(timeout=reconnect_delay)
+                        reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)
+                        continue
+
+                    print("Successfully connected to Kafka", file=sys.stderr)
+                    reconnect_delay = 5.0  # 연결 성공시 재연결 대기 시간 초기화
+                    
+                    # 메시지 소비 시작
+                    self.consumer.consume_events(message_handler)
+                    
+                except Exception as e:
+                    print(f"Error in consumer thread: {e}", file=sys.stderr)
+                    traceback.print_exc(file=sys.stderr)
+                    
+                    if not self._running.is_set():
+                        break
+                        
+                    print(f"Waiting {reconnect_delay} seconds before retrying...", file=sys.stderr)
+                    self._running.wait(timeout=reconnect_delay)
+                    reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)
+            
+            print("Consumer thread ending gracefully", file=sys.stderr)
 
                 
 # 전역 인스턴스 생성
