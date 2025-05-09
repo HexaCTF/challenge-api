@@ -118,6 +118,7 @@ class MessageHandler:
             
             try:
                 if new_status == 'Running':
+                    port = int(endpoint) if endpoint else 0
                     # Running 상태일 때 포트 업데이트
                     status_repo.update_port(recent_status.idx, port)
                     logger.info(f"Updated port to {port} for challenge {challenge_name}")
