@@ -1,4 +1,4 @@
-from challenge_api.db.models import UserChallenges_status, UserChallenges
+from challenge_api.db.models import UserChallengesStatus, UserChallenges
 from challenge_api.extensions_manager import db
 from challenge_api.objects.challenge_info import ChallengeInfo
 from challenge_api.exceptions.api_exceptions import InternalServerError
@@ -10,7 +10,7 @@ class UserChallengeStatusRepository:
     def __init__(self, session=None):
         self.session = session or db.session
     
-    def create(self, userchallenge_idx: int, port: int, status: str) -> Optional[UserChallenges_status]:
+    def create(self, userchallenge_idx: int, port: int, status: str) -> Optional[UserChallengesStatus]:
         """
         새로운 사용자 챌린지 상태 생성
         
@@ -28,7 +28,7 @@ class UserChallengeStatusRepository:
             if not user_challenge:
                 raise InternalServerError(error_msg=f"UserChallenge not found with idx: {userchallenge_idx}")
 
-            challenge_status = UserChallenges_status(
+            challenge_status = UserChallengesStatus(
                 port=port,
                 status=status,
                 userChallenge_idx=userchallenge_idx
@@ -43,7 +43,7 @@ class UserChallengeStatusRepository:
             self.session.commit()
 
             # DB에서 다시 조회하여 반환
-            created_status = self.session.get(UserChallenges_status, challenge_status.idx)
+            created_status = self.session.get(UserChallengesStatus, challenge_status.idx)
             if not created_status:
                 raise InternalServerError(error_msg="Failed to retrieve created challenge status")
 
@@ -53,7 +53,7 @@ class UserChallengeStatusRepository:
             self.session.rollback()
             raise InternalServerError(error_msg=f"Error creating challenge status in db: {e}") from e
     
-    def get_recent_status(self, userchallenge_idx: int) -> Optional[UserChallenges_status]:
+    def get_recent_status(self, userchallenge_idx: int) -> Optional[UserChallengesStatus]:
         """
         최근 사용자 챌린지 상태 조회
         
@@ -61,12 +61,12 @@ class UserChallengeStatusRepository:
             name (ChallengeName): 챌린지 이름 객체
             
         Returns:
-            Optional[UserChallenges_status]: 가장 최근 상태, 없으면 None
+            Optional[UserChallengesStatus]: 가장 최근 상태, 없으면 None
         """
         try:
-            return UserChallenges_status.query \
+            return UserChallengesStatus.query \
                 .filter_by(userChallenge_idx=userchallenge_idx) \
-                .order_by(UserChallenges_status.createdAt.desc()) \
+                .order_by(UserChallengesStatus.createdAt.desc()) \
                 .first()
         except SQLAlchemyError as e:
             self.session.rollback()
@@ -87,7 +87,7 @@ class UserChallengeStatusRepository:
         """
         try:
             
-            status = self.session.get(UserChallenges_status, status_idx)
+            status = self.session.get(UserChallengesStatus, status_idx)
             if not status:
                 raise InternalServerError(error_msg=f"UserChallengeStatus not found with idx: {status_idx}")
             status.status = new_status
@@ -110,7 +110,7 @@ class UserChallengeStatusRepository:
             bool: 업데이트 성공 여부
         """
         try:
-            status = self.session.get(UserChallenges_status, status_idx)
+            status = self.session.get(UserChallengesStatus, status_idx)
             if not status:
                 raise InternalServerError(error_msg=f"UserChallengeStatus not found with idx: {status_idx}")
             status.port = port
