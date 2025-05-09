@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request
 
 from challenge_api.exceptions.api_exceptions import InvalidRequest
 from challenge_api.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError, UserChallengeNotFoundError
-from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
+from challenge_api.db.repository import UserChallengesRepository, UserChallengeInfoRepository
 from challenge_api.extensions.k8s.client import K8sClient
 from challenge_api.utils.api_decorators import validate_request_body
 from challenge_api.objects.challenge_info import ChallengeInfo
@@ -39,7 +39,7 @@ def delete_userchallenges():
         client = K8sClient()
         client.delete(challenge_info)
                 
-        return jsonify({'message' : '챌린지가 정상적으로 삭제되었습니다.'}), 200
+        return jsonify({'message' : 'Challenge deleted successfully'}), 200
     except JSONDecodeError as e:
         log.error("Invalid request format")
         raise InvalidRequest(error_msg=str(e)) from e
@@ -56,8 +56,9 @@ def get_userchallenge_status():
         userchallenge_repo = UserChallengesRepository()
         userchallenge = userchallenge_repo.get_by_user_challenge_name(challenge_info.name)
         
-        repo = UserChallengeStatusRepository()
-        status = repo.get_recent_status(userchallenge.idx)
-        return jsonify({'data': {'port': status.port, 'status': status.status}}), 200
+        info_repo = UserChallengeInfoRepository()
+        status, port = info_repo.get_status(userchallenge.idx)
+        
+        return jsonify({'data': {'port': port, 'status': status}}), 200
     except Exception as e:
         raise UserChallengeNotFoundError(error_msg=str(e))

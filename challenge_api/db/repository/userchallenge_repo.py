@@ -34,7 +34,7 @@ class UserChallengesRepository:
             
         except SQLAlchemyError as e:
             self.session.rollback()
-            raise InternalServerError(error_msg=f"Error creating challenge in db: {e}") from e
+            raise InternalServerError(error_msg=f"Error creating userchallenge in db: {e}") from e
 
     def get_by_user_challenge_name(self, userChallengeName: str) -> Optional[UserChallenges]:
         """
@@ -47,8 +47,6 @@ class UserChallengesRepository:
             UserChallenges: 사용자 챌린지
         """
         user_challenge = UserChallenges.query.filter_by(userChallengeName=userChallengeName).first()
-        if not user_challenge:
-            return None
         return user_challenge
         
     def is_running(self, challenge: UserChallenges) -> bool:

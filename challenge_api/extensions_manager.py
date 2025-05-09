@@ -84,6 +84,9 @@ class FlaskKafkaConsumer:
             finally:
                 print("Consumer thread ending", file=sys.stderr)
                 
-# 전역 인스턴스 생성
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 db = SQLAlchemy()
 kafka_consumer = FlaskKafkaConsumer()

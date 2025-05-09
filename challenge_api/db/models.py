@@ -105,6 +105,15 @@ class UserChallenges_status(db.Model):
     status = db.Column(db.String(20), nullable=False, default='None')
     createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
     userChallenge_idx = db.Column(db.Integer, db.ForeignKey('UserChallenges.idx'), nullable=False)
+    
+class UserChallenge_Info(db.Model):
+    __tablename__ = 'UserChallenge_Info'
+
+    idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    userChallenge_idx = db.Column(db.Integer, db.ForeignKey('UserChallenges.idx'), nullable=False)
+    port = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='None')
+    createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
 
 # Submissions Table Model
 class Submissions(db.Model):
