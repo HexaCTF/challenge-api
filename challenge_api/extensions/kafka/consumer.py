@@ -51,6 +51,18 @@ class KafkaEventConsumer:
        self.config = config
        self._consumer = None  # 실제 Kafka 소비자 인스턴스
 
+   def _create_consumer(self):
+       """내부 메서드: Kafka 소비자 인스턴스 생성"""
+       try:
+           return KafkaConsumer(
+               self.config.topic,
+               value_deserializer=lambda x: json.loads(x.decode('utf-8')),
+               **self.config.consumer_config
+           )
+       except Exception as e:
+           logger.error(f"Failed to create consumer: {e}")
+           raise QueueProcessingError(error_msg=f"Failed to create consumer: {e}") from e
+
    def bootstrap_connected(self) -> bool:
        """Kafka 브로커와의 연결 상태를 확인
 
@@ -59,16 +71,18 @@ class KafkaEventConsumer:
        """
        try:
            if not self._consumer:
-               self._consumer = KafkaConsumer(
-                   self.config.topic,
-                   value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-                   **self.config.consumer_config
-               )
+               self._consumer = self._create_consumer()
            
            # 브로커 연결 상태 확인
            node_info = self._consumer.cluster.brokers()
            if not node_info:
                logger.error("No brokers available")
+               return False
+               
+           # 토픽 존재 여부 확인
+           topics = self._consumer.topics()
+           if self.config.topic not in topics:
+               logger.error(f"Topic '{self.config.topic}' not found")
                return False
                
            return True
@@ -83,15 +97,7 @@ class KafkaEventConsumer:
        지연 초기화(lazy initialization) 패턴 사용
        """
        if self._consumer is None:
-           try:
-               self._consumer = KafkaConsumer(
-                   self.config.topic,
-                   value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-                   **self.config.consumer_config
-               )
-           except Exception as e:
-               logger.error(f"Failed to create consumer: {e}")
-               raise QueueProcessingError(error_msg=f"Failed to create consumer: {e}") from e
+           self._consumer = self._create_consumer()
        return self._consumer
 
    def consume_events(self, callback):
@@ -101,11 +107,23 @@ class KafkaEventConsumer:
        Args:
            callback: 각 메시지를 처리할 콜백 함수
        """
+       if not self._consumer:
+           print("[ERROR] Consumer not initialized", file=sys.stderr)
+           raise RuntimeError("Consumer not initialized")
+
        try:
            print("[DEBUG] Starting to consume messages...", file=sys.stderr)
-           for message in self.consumer:
+           # 토픽 구독 확인
+           self._consumer.subscribe([self.config.topic])
+           print(f"[DEBUG] Subscribed to topic: {self.config.topic}", file=sys.stderr)
+           
+           for message in self._consumer:
                try:
-                   print(f"[DEBUG] Received raw message: {message}", file=sys.stderr)
+                   if message is None or message.value is None:
+                       print("[WARN] Received null message", file=sys.stderr)
+                       continue
+                       
+                   print(f"[DEBUG] Received message from partition {message.partition}, offset {message.offset}", file=sys.stderr)
                    print(f"[DEBUG] Message value: {message.value}", file=sys.stderr)
                    
                    # 메시지 파싱
@@ -118,17 +136,14 @@ class KafkaEventConsumer:
                    print("[DEBUG] Message handler completed successfully", file=sys.stderr)
                    
                except json.JSONDecodeError as e:
-                   # JSON 디코딩 오류 처리
                    print(f"[ERROR] JSON decode error: {e}", file=sys.stderr)
                    print(f"[ERROR] Raw message content: {message.value}", file=sys.stderr)
                    continue
                except KeyError as e:
-                   # 필수 필드 누락 오류 처리
                    print(f"[ERROR] Missing required field: {e}", file=sys.stderr)
                    print(f"[ERROR] Message content: {message.value}", file=sys.stderr)
                    continue
                except Exception as e:
-                   # 기타 예외 처리
                    print(f"[ERROR] Error processing message: {e}", file=sys.stderr)
                    print(f"[ERROR] Error type: {type(e)}", file=sys.stderr)
                    print(f"[ERROR] Message content: {message.value}", file=sys.stderr)
