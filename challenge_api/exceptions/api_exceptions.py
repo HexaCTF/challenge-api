@@ -1,4 +1,3 @@
-
 from challenge_api.exceptions.base_exceptions import CustomBaseException
 from challenge_api.exceptions.error_types import ApiErrorTypes
 
@@ -23,7 +22,16 @@ class InternalServerError(APIException):
     def __init__(self, error_msg: str = None):
         super().__init__(
             error_type=ApiErrorTypes.INTERNAL_SERVER_ERROR,
-            message="An unexpected error occurred",
+            message="Internal server error",
             status_code=500,
+            error_msg=error_msg
+        )
+
+class ChallengeNotFound(APIException):
+    def __init__(self, error_msg: str = None):
+        super().__init__(
+            error_type=ApiErrorTypes.NOT_FOUND,
+            message="Challenge not found",
+            status_code=404,
             error_msg=error_msg
         )
