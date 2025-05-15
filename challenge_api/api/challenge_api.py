@@ -11,6 +11,10 @@ from challenge_api.objects.challenge_info import ChallengeInfo
 
 challenge_bp = Blueprint('challenge', __name__)
 
+@challenge_bp.route('/hello', methods=['GET'])
+def hello():
+    return jsonify({'data':'hello'})
+
 @challenge_bp.route('', methods=['POST'])
 @validate_request_body('challenge_id', 'user_id')
 def create_challenge():
