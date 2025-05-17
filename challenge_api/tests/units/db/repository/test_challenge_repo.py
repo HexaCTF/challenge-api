@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from sqlalchemy.exc import SQLAlchemyError
 
-from challenge_api.db.repository.challenge_repo import ChallengeRepository
+from challenge_api.db.repository.challenge import ChallengeRepository
 from challenge_api.exceptions.api_exceptions import InternalServerError
 from challenge_api.exceptions.challenge_exceptions import ChallengeNotFound
 

@@ -6,7 +6,7 @@ from typing import Optional
 import sys
 
 from challenge_api.extensions_manager import db
-from challenge_api.db.repository.challenge_repo import ChallengeRepository
+from challenge_api.db.repository.challenge import ChallengeRepository
 
 class UserChallengesRepository:
     def __init__(self, session=None):
@@ -29,7 +29,6 @@ class UserChallengesRepository:
             challenge_repo = ChallengeRepository(self.session)
             if not challenge_repo.is_exist(challenge_info.challenge_id):
                 error_msg = f"Challenge with id {challenge_info.challenge_id} does not exist"
-                print(f"[ERROR] {error_msg}", file=sys.stderr)
                 raise InternalServerError(error_msg=error_msg)
             
             challenge = UserChallenges(
@@ -37,7 +36,6 @@ class UserChallengesRepository:
                 user_idx=challenge_info.user_id,
                 userChallengeName=challenge_info.name,
             )
-            print(f"[DEBUG] Creating UserChallenge: {challenge.__dict__}", file=sys.stderr)
             self.session.add(challenge)
             self.session.commit()
             return challenge
@@ -45,12 +43,10 @@ class UserChallengesRepository:
         except SQLAlchemyError as e:
             self.session.rollback()
             error_msg = f"Error creating challenge in db: {str(e)}"
-            print(f"[ERROR] {error_msg}", file=sys.stderr)
             raise InternalServerError(error_msg=error_msg) from e
         except Exception as e:
             self.session.rollback()
             error_msg = f"Unexpected error creating challenge: {str(e)}"
-            print(f"[ERROR] {error_msg}", file=sys.stderr)
             raise InternalServerError(error_msg=error_msg) from e
 
     def get_by_user_challenge_name(self, userChallengeName: str) -> Optional[UserChallenges]:
