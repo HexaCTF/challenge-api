@@ -3,8 +3,9 @@ from logging import log
 from flask import Blueprint, jsonify, request
 
 from challenge_api.exceptions.api_exceptions import InvalidRequest
-from challenge_api.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError, UserChallengeNotFoundError
-from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
+from challenge_api.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError, UserChallengeNotFound
+from challenge_api.db.repository.userchallenge import UserChallengesRepository
+from challenge_api.db.repository.userchallenge_status import UserChallengeStatusRepository
 from challenge_api.extensions.k8s.client import K8sClient
 from challenge_api.utils.api_decorators import validate_request_body
 from challenge_api.objects.challenge_info import ChallengeInfo
@@ -61,4 +62,4 @@ def get_userchallenge_status():
         status = repo.get_recent_status(userchallenge.idx)
         return jsonify({'data': {'port': status.port, 'status': status.status}}), 200
     except Exception as e:
-        raise UserChallengeNotFoundError(error_msg=str(e))
+        raise UserChallengeNotFound(error_msg=str(e))

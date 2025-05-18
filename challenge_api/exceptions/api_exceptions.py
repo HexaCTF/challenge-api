@@ -30,7 +30,7 @@ class InternalServerError(APIException):
 class ChallengeNotFound(APIException):
     def __init__(self, error_msg: str = None):
         super().__init__(
-            error_type=ApiErrorTypes.NOT_FOUND,
+            error_type=ApiErrorTypes.CHALLENGE_NOT_FOUND,
             message="Challenge not found",
             status_code=404,
             error_msg=error_msg

@@ -1,16 +1,20 @@
 from challenge_api.db.models import UserChallengesStatus, UserChallenges
 from challenge_api.extensions_manager import db
-from challenge_api.objects.challenge_info import ChallengeInfo
 from challenge_api.exceptions.api_exceptions import InternalServerError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
 from typing import Optional
+from challenge_api.db.repository.userchallenge import UserChallengesRepository
+from challenge_api.db.repository.challenge import ChallengeRepository
+from challenge_api.exceptions.userchallenge_exceptions import UserChallengeNotFound
 
 class UserChallengeStatusRepository:
     def __init__(self, session=None):
         self.session = session or db.session
+        self.userchallenge_repository = UserChallengesRepository(self.session)
+        self.challenge_repository = ChallengeRepository(self.session)
     
-    def create(self, userchallenge_idx: int, port: int, status: str) -> Optional[UserChallengesStatus]:
+    def create(self, userchallenge_idx: int, port: int, status: str):
         """
         새로운 사용자 챌린지 상태 생성
         
@@ -24,31 +28,18 @@ class UserChallengeStatusRepository:
 
         try:
             # Check if UserChallenge exists
-            user_challenge = self.session.get(UserChallenges, userchallenge_idx)
-            if not user_challenge:
-                raise InternalServerError(error_msg=f"UserChallenge not found with idx: {userchallenge_idx}")
-
+            _ = self.userchallenge_repository.is_exist(userchallenge_idx)
+            
             challenge_status = UserChallengesStatus(
                 port=port,
                 status=status,
                 userChallenge_idx=userchallenge_idx
             )
             self.session.add(challenge_status)
-            self.session.flush()  # ID 생성을 위해 flush
-
-            if not challenge_status.idx:  # ID 확인
-                self.session.rollback()
-                raise InternalServerError(error_msg="Failed to create challenge status - no ID generated")
-
             self.session.commit()
 
-            # DB에서 다시 조회하여 반환
-            created_status = self.session.get(UserChallengesStatus, challenge_status.idx)
-            if not created_status:
-                raise InternalServerError(error_msg="Failed to retrieve created challenge status")
-
-            return created_status
-
+        except UserChallengeNotFound as e:
+            raise e
         except SQLAlchemyError as e:
             self.session.rollback()
             raise InternalServerError(error_msg=f"Error creating challenge status in db: {e}") from e

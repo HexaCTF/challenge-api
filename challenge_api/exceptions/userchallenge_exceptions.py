@@ -7,7 +7,7 @@ class UserChallengeException(CustomBaseException):
     def __init__(self, error_type: ApiErrorTypes, message: str, status_code: int = 500, error_msg: str = None):
         super().__init__(error_type, message, status_code, error_msg)
 
-class UserChallengeConflictError(UserChallengeException):
+class UserChallengeConflict(UserChallengeException):
     """UserChallenge 중복 생성 시도시 발생하는 예외"""
     def __init__(self, error_msg: str = None):
         super().__init__(
@@ -37,7 +37,7 @@ class UserChallengeDeletionError(UserChallengeException):
             error_msg=error_msg
         )
 
-class UserChallengeNotFoundError(UserChallengeException):
+class UserChallengeNotFound(UserChallengeException):
     """UserChallenge 조회 실패시 발생하는 예외"""
     def __init__(self, error_msg: str = None):
         super().__init__(
