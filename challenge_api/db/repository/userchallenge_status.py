@@ -24,11 +24,17 @@ class UserChallengeStatusRepository:
         
         Returns:
             UserChallenges: 생성된 사용자 챌린지 상태
+            
+        Raises:
+            UserChallengeNotFound: 사용자 챌린지가 존재하지 않을 때
+            InternalServerError: DB 에러 발생 시
         """
-
         try:
             # Check if UserChallenge exists
-            _ = self.userchallenge_repository.is_exist(userchallenge_idx)
+            try:
+                self.userchallenge_repository.is_exist(userchallenge_idx)
+            except UserChallengeNotFound as e:
+                raise UserChallengeNotFound(error_msg=f"UserChallenge with idx {userchallenge_idx} does not exist") from e
             
             challenge_status = UserChallengesStatus(
                 port=port,
@@ -37,9 +43,7 @@ class UserChallengeStatusRepository:
             )
             self.session.add(challenge_status)
             self.session.commit()
-
-        except UserChallengeNotFound as e:
-            raise e
+            return challenge_status
         except SQLAlchemyError as e:
             self.session.rollback()
             raise InternalServerError(error_msg=f"Error creating challenge status in db: {e}") from e

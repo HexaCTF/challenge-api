@@ -4,7 +4,7 @@ from typing import Any, Dict, Set, Optional
 from enum import Enum, auto
 from challenge_api.exceptions.kafka_exceptions import QueueProcessingError
 from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
-from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge import ChallengeRequest
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 
@@ -149,7 +149,7 @@ class MessageHandler:
             user_id, challenge_id, new_status, _, endpoint = MessageHandler.validate_message(message)
             
             try:
-                challenge_info = ChallengeInfo(challenge_id=int(challenge_id), user_id=int(user_id))
+                challenge_info = ChallengeRequest(challenge_id=int(challenge_id), user_id=int(user_id))
             except ValueError as e:
                 error_msg = f"Invalid ID format: {str(e)}"
                 logger.error(error_msg)

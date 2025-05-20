@@ -10,7 +10,7 @@ from kubernetes.client.rest import ApiException
 from challenge_api.exceptions.challenge_exceptions import ChallengeNotFound
 from challenge_api.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError
 from challenge_api.db.repository import ChallengeRepository, UserChallengesRepository, UserChallengeStatusRepository
-from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge import ChallengeRequest
 from challenge_api.utils.namebuilder import NameBuilder
 
 MAX_RETRIES = 3
@@ -48,7 +48,7 @@ class K8sClient:
         self.custom_api = client.CustomObjectsApi()
         self.core_api = client.CoreV1Api()
 
-    def _cleanup_existing_challenge(self, challenge_info: ChallengeInfo, namespace: str) -> None:
+    def _cleanup_existing_challenge(self, challenge_info: ChallengeRequest, namespace: str) -> None:
         """
         기존 챌린지 리소스를 정리합니다.
         
@@ -182,7 +182,7 @@ class K8sClient:
             log_error(f"Error in _update_challenge_status: {str(e)}")
             raise UserChallengeCreationError(error_msg=f"Failed to update challenge status: {str(e)}")
 
-    def create(self, data: ChallengeInfo, namespace="challenge") -> int:
+    def create(self, data: ChallengeRequest, namespace="challenge") -> int:
         """
         Challenge Custom Resource를 생성하고 NodePort를 반환합니다.
         
@@ -293,7 +293,7 @@ class K8sClient:
         log_info(f"=== Challenge Creation Completed Successfully ===")
         return endpoint
 
-    def delete(self, challenge_info: ChallengeInfo, namespace="challenge"):
+    def delete(self, challenge_info: ChallengeRequest, namespace="challenge"):
         """
         Challenge Custom Resource를 삭제합니다.
         

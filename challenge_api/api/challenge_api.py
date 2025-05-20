@@ -8,7 +8,7 @@ from challenge_api.db.repository.userchallenge import UserChallengesRepository
 from challenge_api.db.repository.userchallenge_status import UserChallengeStatusRepository
 from challenge_api.extensions.k8s.client import K8sClient
 from challenge_api.utils.api_decorators import validate_request_body
-from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge import ChallengeRequest
 
 challenge_bp = Blueprint('challenge', __name__)
 
@@ -18,7 +18,7 @@ def create_challenge():
     """사용자 챌린지 생성"""
     # Challenge 관련 정보 가져오기 
     res = request.get_json()
-    challenge_info = ChallengeInfo(**res)
+    challenge_info = ChallengeRequest(**res)
     
     # 챌린지 생성 
     client = K8sClient()
@@ -35,7 +35,7 @@ def delete_userchallenges():
     """사용자 챌린지 삭제"""
     try:
         res = request.get_json()
-        challenge_info = ChallengeInfo(**res)
+        challenge_info = ChallengeRequest(**res)
         
         # 사용자 챌린지 삭제 
         client = K8sClient()
@@ -52,11 +52,11 @@ def get_userchallenge_status():
     """사용자 챌린지 최근 상태 조회"""
     try:
         res = request.get_json()
-        challenge_info = ChallengeInfo(**res)
+        challenge_info = ChallengeRequest(**res)
                 
         # 사용자 챌린지 상태 조회
         userchallenge_repo = UserChallengesRepository()
-        userchallenge = userchallenge_repo.get_by_user_challenge_name(challenge_info.name)
+        userchallenge = userchallenge_repo.get_by_name(challenge_info.name)
         
         repo = UserChallengeStatusRepository()
         status = repo.get_recent_status(userchallenge.idx)

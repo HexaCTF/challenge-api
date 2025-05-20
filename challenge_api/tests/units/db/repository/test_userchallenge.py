@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from sqlalchemy.exc import SQLAlchemyError
 
 from challenge_api.db.repository.userchallenge import UserChallengesRepository
-from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge import ChallengeRequest
 from challenge_api.exceptions.userchallenge_exceptions import UserChallengeNotFound
 from challenge_api.exceptions.challenge_exceptions import ChallengeNotFound
 from challenge_api.db.repository.challenge import ChallengeRepository
@@ -12,7 +12,7 @@ from challenge_api.db.models import UserChallenges
 
 @pytest.fixture
 def mock_challengeInfo():
-    return ChallengeInfo(
+    return ChallengeRequest(
         user_id=1,
         challenge_id=1,
     )
@@ -123,7 +123,7 @@ class TestUserChallengeRepository(TestBaseUserChallengeRepository):
             with pytest.raises(ChallengeNotFound) as exc_info:
                 self.repository.create(mock_challengeInfo)
 
-            assert f"Challenge with name {mock_challengeInfo.name} does not exist" in str(exc_info.value)
+            assert f"Challenge with id {mock_challengeInfo.challenge_id} does not exist" in str(exc_info.value)
             self.mock_session.rollback.assert_not_called()
 
     def test_get_by_name_success(self, mock_challengeInfo, mock_user_challenge):

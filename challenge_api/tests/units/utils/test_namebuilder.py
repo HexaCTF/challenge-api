@@ -1,6 +1,6 @@
 import pytest
 from challenge_api.utils.namebuilder import NameBuilder
-from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge import ChallengeInfo
 
 @pytest.fixture
 def fake_challengeinfo():

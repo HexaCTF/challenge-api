@@ -1,6 +1,7 @@
 from sqlalchemy.exc import SQLAlchemyError
 from challenge_api.db.models import Challenges
 from challenge_api.exceptions.api_exceptions import InternalServerError, ChallengeNotFound
+from challenge_api.exceptions.common import EmptyValueException
 
 class ChallengeRepository:
     def __init__(self, session):
@@ -39,15 +40,7 @@ class ChallengeRepository:
         Raises:
             InternalServerError: DB 에러 발생 시
         """
-        try:
-            _  = self._get_challenge(challenge_id)
-            return True
-        except ChallengeNotFound:
-            return False
-        except SQLAlchemyError as e:
-            raise InternalServerError(
-                error_msg=f"Error checking challenge existence for id {challenge_id}: {str(e)}"
-                ) from e
+        return self._get_challenge(challenge_id) is not None
     
     def get_challenge_name(self, challenge_id: int) -> str:
         """
@@ -63,11 +56,7 @@ class ChallengeRepository:
             ChallengeNotFound: 챌린지가 존재하지 않을 때
             InternalServerError: DB 에러 발생 시
         """
-        try:
-            challenge = self._get_challenge(challenge_id)
-            return challenge.title
-        except SQLAlchemyError as e:
-            raise InternalServerError(
-                error_msg=f"Error getting challenge name for id {challenge_id}: {str(e)}"
-                ) from e
-    
+        challenge = self._get_challenge(challenge_id)
+        if challenge.title is None:
+            raise EmptyValueException(error_msg=f"Challenge title is empty: {challenge_id}")
+        return challenge.title
