@@ -1,7 +1,7 @@
 from typing import Optional
 import re
 
-from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge import ChallengeInfo
 
 class NameBuilder:
     def __init__(self, challenge_id: int, user_id: int):
