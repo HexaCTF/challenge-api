@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict
 from challenge_api.exceptions.kafka_exceptions import QueueProcessingError
 from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
-from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge import ChallengeInfo
 from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)

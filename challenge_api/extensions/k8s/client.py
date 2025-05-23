@@ -4,10 +4,10 @@ import time
 
 from kubernetes import client, config, watch
 
-from challenge_api.exceptions.challenge_exceptions import ChallengeNotFound
+from challenge_api.exceptions.challenge import ChallengeNotFound
 from challenge_api.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError
 from challenge_api.db.repository import ChallengeRepository, UserChallengesRepository, UserChallengeStatusRepository
-from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge import ChallengeInfo
 from challenge_api.utils.namebuilder import NameBuilder
 MAX_RETRIES = 3
 SLEEP_INTERVAL = 2

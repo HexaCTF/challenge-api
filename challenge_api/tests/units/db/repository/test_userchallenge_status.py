@@ -1,49 +1,129 @@
 
 import pytest
-from exceptions.api_exceptions import InternalServerError
-from db.repository import UserChallengeStatusRepository, UserChallengesRepository
-# ===============================================
-# create 테스트
-# ===============================================
-def test_userchallenge_status_create_success(test_db, fake_challenge_info, fake_userchallenge_status):
-    """Test successful user challenge status creation"""
-    # when
-    session = test_db.get_session()
-    userchallenge_status_repo = UserChallengeStatusRepository(session=session)
-    
-    # given
-    user_challenges_repo = UserChallengesRepository(session=session)
-    user_challenges_repo.create(fake_challenge_info)
-    status = userchallenge_status_repo.create(fake_userchallenge_status.userChallenge_idx, fake_userchallenge_status.port)
-    
-    # then
-    assert status is not None
-    assert status.port == fake_userchallenge_status.port
-    assert status.status == "None"
-    assert status.userChallenge_idx == fake_userchallenge_status.userChallenge_idx
-    
-def test_userchallenge_status_create_fail_userchallenge_not_found(test_db, fake_userchallenge_status):
-    """Test failed user challenge status creation when user challenge not found"""
-    # when
-    session = test_db.get_session()
-    userchallenge_status_repo = UserChallengeStatusRepository(session=session)
-    
-    # then
-    with pytest.raises(InternalServerError):
-        # given
-        userchallenge_status_repo.create(
-            fake_userchallenge_status.userChallenge_idx,
-            fake_userchallenge_status.port
-        )
-        
-# ===============================================
-# get_recent_status 테스트
-# ===============================================
-def test_userchallenge_status_get_recent_status_success(test_db, fake_challenge_info, fake_userchallenge_status):
-    """Test successful user challenge status retrieval"""
-    pass 
+from unittest.mock import MagicMock
+from challenge_api.db.repository.userchallenge_status import UserChallengeStatusRepository
+from challenge_api.db.models import UserChallengeStatus
+from challenge_api.objects.usrchallenge import UChallengeStatus
+from challenge_api.exceptions.service import InvalidInputValue
+from unittest.mock import patch
 
+@pytest.fixture
+def fake_userchallenge_status():
+    return UChallengeStatus(
+        userchallenge_idx=1,
+        port=8080,
+        status="running"
+    )
+
+@pytest.fixture
+def fake_empty_status():
+    return UChallengeStatus(
+        userchallenge_idx=1,
+        status="None",
+        port=8081
+    )
+
+@pytest.fixture
+def fake_empty_port():
+    return UChallengeStatus(
+        userchallenge_idx=1,
+        status="terminated",
+        port=0
+    )
+
+@pytest.fixture
+def mock_userchallenge_status():
+    userchallenge_status = MagicMock()
+    userchallenge_status.userchallenge_idx = 1
+    userchallenge_status.port = 8080
+    userchallenge_status.status = "running"
+    return userchallenge_status
+
+
+class TestUserChallengeStatusRepository:
+    def setup_method(self):
+        self.mock_session = MagicMock()
+        self.repo = UserChallengeStatusRepository(session=self.mock_session)
     
+    def test_create_success(self, fake_userchallenge_status, mock_userchallenge_status):
+        userchallenge_status = self.repo.create(fake_userchallenge_status)
+        
+        assert userchallenge_status is not None
+        assert userchallenge_status.userChallenge_idx == mock_userchallenge_status.userchallenge_idx
+        assert userchallenge_status.port == mock_userchallenge_status.port
+        assert userchallenge_status.status == mock_userchallenge_status.status
+        
+        # assert self.mock_session.add.called_once_with(userchallenge_status)
+        assert self.mock_session.commit.called_once()
     
+    def test_create_invalid_input(self):
+        with pytest.raises(InvalidInputValue) as e:
+            self.repo.create(1)
+            
+        assert "Invalid input error when creating userchallenge status" in str(e)
     
-    
+    def test_get_by_id_success(self, mock_userchallenge_status):
+        self.mock_session.query.return_value.filter_by.return_value.first.return_value = mock_userchallenge_status
+        
+        userchallenge_status = self.repo.get_by_id(1)
+        
+        assert userchallenge_status is not None
+        assert userchallenge_status.userchallenge_idx == 1
+        assert userchallenge_status.port == 8080
+        assert userchallenge_status.status == "running"
+        
+        assert self.mock_session.query.return_value.filter_by.called_once_with(id_=1)
+        assert self.mock_session.query.return_value.filter_by.return_value.first.called_once_with()
+        
+    def test_get_by_id_does_not_exist(self):
+        self.mock_session.query.return_value.filter_by.return_value.first.return_value = None
+        
+        userchallenge_status = self.repo.get_by_id(1)
+        
+        assert userchallenge_status is None
+        
+    def test_first_success(self, mock_userchallenge_status):
+        self.mock_session.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = mock_userchallenge_status
+        
+        userchallenge_status = self.repo.first(1)
+        
+        assert userchallenge_status is not None
+        assert userchallenge_status.userchallenge_idx == 1
+        assert userchallenge_status.port == 8080
+        assert userchallenge_status.status == "running"
+        
+        assert self.mock_session.query.return_value.filter_by.called_once_with(id_=1)
+        assert self.mock_session.query.return_value.filter_by.return_value.order_by.called_once_with(UserChallengeStatus.createdAt.desc())
+        assert self.mock_session.query.return_value.filter_by.return_value.order_by.return_value.first.called_once_with()
+
+
+    def test_update_port_success(self, mock_userchallenge_status, fake_empty_status):
+        with patch.object(self.repo, 'get_by_id') as mock_get_by_id:
+            mock_get_by_id.return_value = mock_userchallenge_status
+            
+            userchallenge_status = self.repo.update(fake_empty_status)
+            
+            assert userchallenge_status is not None
+            assert userchallenge_status.port == fake_empty_status.port
+            assert userchallenge_status.status == mock_userchallenge_status.status
+
+            assert mock_get_by_id.called_once_with(id_ = fake_empty_status.userchallenge_idx)
+            assert self.mock_session.commit.called_once()
+        
+        
+        
+    def test_update_status_success(self, mock_userchallenge_status, fake_empty_port):
+        with patch.object(self.repo, 'get_by_id') as mock_get_by_id:
+            mock_get_by_id.return_value = mock_userchallenge_status
+
+            userchallenge_status = self.repo.update(fake_empty_port)
+
+            assert userchallenge_status is not None
+            assert userchallenge_status.status == fake_empty_port.status
+            assert userchallenge_status.port == mock_userchallenge_status.port
+
+            assert mock_get_by_id.called_once_with(id_ = fake_empty_port.userchallenge_idx)
+            assert self.mock_session.commit.called_once()
+        
+        
+        

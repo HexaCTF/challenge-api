@@ -8,7 +8,7 @@ from typing import Any, Dict, Type
 
 from challenge_api.api.challenge_api import challenge_bp
 from challenge_api.config import Config
-from challenge_api.exceptions.base_exceptions import CustomBaseException
+from challenge_api.exceptions.base import CustomBaseException
 from challenge_api.extensions.kafka.handler import MessageHandler
 from challenge_api.extensions_manager import kafka_consumer, db
 # rom challenge_api.monitoring.loki_logger import FlaskLokiLogger

@@ -2,12 +2,10 @@ from json import JSONDecodeError
 from logging import log
 from flask import Blueprint, jsonify, request
 
-from challenge_api.exceptions.api_exceptions import InvalidRequest
-from challenge_api.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError, UserChallengeNotFoundError
 from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
 from challenge_api.extensions.k8s.client import K8sClient
 from challenge_api.utils.api_decorators import validate_request_body
-from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge import ChallengeRequest
 
 challenge_bp = Blueprint('challenge', __name__)
 
@@ -17,11 +15,11 @@ def create_challenge():
     """사용자 챌린지 생성"""
     # Challenge 관련 정보 가져오기 
     res = request.get_json()
-    challenge_info = ChallengeInfo(**res)
+    body = ChallengeRequest(**res)
     
     # 챌린지 생성 
     client = K8sClient()
-    endpoint = client.create(data=challenge_info)
+    endpoint = client.create(data=body)
     if not endpoint:
         raise UserChallengeCreationError(error_msg=f"Failed to create challenge {challenge_info.challenge_id} for user {challenge_info.name} : Endpoint did not exist")
     
