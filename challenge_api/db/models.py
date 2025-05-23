@@ -96,9 +96,9 @@ class UserChallenges(db.Model):
     createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
 
 
-# UserChallenges_status Table Model
-class UserChallenges_status(db.Model):
-    __tablename__ = 'UserChallenges_status'
+# UserChallengeStatus Table Model
+class UserChallengeStatus(db.Model):
+    __tablename__ = 'UserChallengeStatus'
 
     idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
     port = db.Column(db.Integer, nullable=False)
