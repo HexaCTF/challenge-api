@@ -21,6 +21,9 @@ class UserChallengeStatusRepository(BaseRepository):
             raise InvalidInputValue(
                 message = "Invalid input error when creating userchallenge status"
             )
+
+    def get(self, **kwargs):
+        return self.session.query(UserChallengeStatus).filter_by(**kwargs).first()
     
     def get_by_id(self, id_):
         return self.session.query(UserChallengeStatus).filter_by(idx=id_).first()

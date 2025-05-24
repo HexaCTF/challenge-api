@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from challenge_api.db.repository.userchallenge import UserChallengesRepository
 from challenge_api.objects.challenge import ChallengeRequest
 from challenge_api.exceptions.service import InvalidInputValue
-
+from sqlalchemy.exc import SQLAlchemyError
 @pytest.fixture
 def fake_challenge_request():
     return ChallengeRequest(
@@ -57,11 +57,29 @@ class TestUserChallengeRepository:
         userchallenge = self.repo.get_by_id(1)
         
         assert userchallenge is None
+    
+    def test_get_success(self, mock_userchallenge):
+        self.mock_session.query.return_value.filter_by.return_value.first.return_value = mock_userchallenge
         
+        kwarg = {
+            "user_idx": 1,
+            "C_idx": 1
+        }
+        userchallenge = self.repo.get(**kwarg)
         
+        assert userchallenge is not None
+        assert userchallenge.user_idx == 1
+        assert userchallenge.C_idx == 1
+        assert userchallenge.userChallengeName == "test_userchallenge"
         
-        
-        
+    def test_get_does_invalid_column(self):
+        with pytest.raises(SQLAlchemyError) as e:
+            kwarg = {
+                "invalid_column": 1
+            }
+            self.repo.get(**kwarg)
+            
+        assert "Invalid input error when getting userchallenge" in str(e)
         
         
         

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from challenge_api.objects.challenge import ChallengeRequest
-from challenge_api.challenge.service import ChallengeService
+from challenge_api.userchallenge.challenge import ChallengeService
 
 @pytest.fixture
 def request_stub():

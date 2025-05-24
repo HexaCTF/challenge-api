@@ -6,7 +6,10 @@ from challenge_api.db.repository.base import BaseRepository
 class ChallengeRepository(BaseRepository):
     def __init__(self, session=None):
         super().__init__(session)
-        
+    
+    def get(self, **kwargs):
+        pass 
+    
     def create(self, object_):
         pass 
     

@@ -7,3 +7,4 @@ class ChallengeService:
     
     def is_exist(self, request:ChallengeRequest) -> bool:
         return self.challenge_repository.get_by_id(request.challenge_id) is not None
+    

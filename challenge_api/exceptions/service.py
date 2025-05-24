@@ -29,3 +29,17 @@ class ChallengeNotFound(ChallengeException):
     """Challenge를 찾을 수 없을 때의 예외"""
     def __init__(self, message:str):
         super().__init__(message)
+
+"""
+UserChallenge
+"""
+class UserChallengeException(BaseServiceException):
+    """UserChallenge 관련 기본 예외"""
+    def __init__(self, message:str):
+        super().__init__(message)
+        
+class UserChallengeNotFound(UserChallengeException):
+    """UserChallenge를 찾을 수 없을 때의 예외"""
+    def __init__(self, message:str):
+        super().__init__(message)
+        
