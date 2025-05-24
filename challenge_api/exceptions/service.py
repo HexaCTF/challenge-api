@@ -42,4 +42,12 @@ class UserChallengeNotFound(UserChallengeException):
     """UserChallenge를 찾을 수 없을 때의 예외"""
     def __init__(self, message:str):
         super().__init__(message)
+
+class UserChallengeCreationException(UserChallengeException):
+    """UserChallenge 생성 중 예외"""
+    def __init__(self, message:str):
+        super().__init__(message)
+        
+        
+        
         
