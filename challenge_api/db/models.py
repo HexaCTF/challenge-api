@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
-from enum import Enum
-from challenge_api.extensions_manager import db
 from sqlalchemy import ForeignKey
-
+from challenge_api.db.db_manager import db
 def current_time_kst():
     return datetime.utcnow() + timedelta(hours=9)
 
