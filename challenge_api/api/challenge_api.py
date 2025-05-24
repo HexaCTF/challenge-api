@@ -1,29 +1,40 @@
 from json import JSONDecodeError
 from logging import log
 from flask import Blueprint, jsonify, request
-
-from challenge_api.exceptions.api_exceptions import InvalidRequest
-from challenge_api.exceptions.userchallenge_exceptions import UserChallengeCreationError, UserChallengeDeletionError, UserChallengeNotFoundError
 from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
 from challenge_api.extensions.k8s.client import K8sClient
 from challenge_api.utils.api_decorators import validate_request_body
-from challenge_api.objects.challenge_info import ChallengeInfo
+from challenge_api.objects.challenge import ChallengeRequest
+from challenge_api.exceptions.service import ServiceException
+from sqlalchemy.exc import SQLAlchemyError
+from kubernetes.client.rest import ApiException
 
 challenge_bp = Blueprint('challenge', __name__)
+
 
 @challenge_bp.route('', methods=['POST'])
 @validate_request_body('challenge_id', 'user_id')
 def create_challenge():
-    """사용자 챌린지 생성"""
-    # Challenge 관련 정보 가져오기 
-    res = request.get_json()
-    challenge_info = ChallengeInfo(**res)
     
-    # 챌린지 생성 
-    client = K8sClient()
-    endpoint = client.create(data=challenge_info)
-    if not endpoint:
-        raise UserChallengeCreationError(error_msg=f"Failed to create challenge {challenge_info.challenge_id} for user {challenge_info.name} : Endpoint did not exist")
+    try:
+        """사용자 챌린지 생성"""
+        # Challenge 관련 정보 가져오기 
+        res = request.get_json()
+        body = ChallengeRequest(**res)
+
+         
+    except ServiceException as e:
+        # Service Logic 전체 
+        pass 
+    except SQLAlchemyError as e:
+        # Database Exception 
+        pass 
+    except ApiException as e:
+        # Kubernetes Exception 
+        pass 
+    except Exception as e:
+        pass
+     
     
     return jsonify({'data' : {'port': endpoint}}), 200
 

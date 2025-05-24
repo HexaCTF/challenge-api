@@ -3,7 +3,6 @@ import sys
 from threading import Lock, Thread, Event
 from typing import Optional, Callable
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from challenge_api.extensions.kafka import KafkaConfig, KafkaEventConsumer
 
 class FlaskKafkaConsumer:
@@ -85,5 +84,4 @@ class FlaskKafkaConsumer:
                 print("Consumer thread ending", file=sys.stderr)
                 
 # 전역 인스턴스 생성
-db = SQLAlchemy()
 kafka_consumer = FlaskKafkaConsumer()

@@ -3,7 +3,7 @@ import logging
 from typing import Any, Dict
 from kafka import KafkaConsumer
 import json
-from challenge_api.exceptions.kafka_exceptions import QueueProcessingError
+# from challenge_api.exceptions.kafka_exceptions import QueueProcessingError
 
 
 class StatusMessage:
