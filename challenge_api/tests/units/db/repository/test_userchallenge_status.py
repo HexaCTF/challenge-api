@@ -39,6 +39,13 @@ def mock_userchallenge_status():
     userchallenge_status.status = "running"
     return userchallenge_status
 
+@pytest.fixture
+def mock_userchallenge_status():
+    userchallenge_status = MagicMock()
+    userchallenge_status.userchallenge_idx = 1
+    userchallenge_status.port = 8080
+    userchallenge_status.status = "running"
+    return userchallenge_status
 
 class TestUserChallengeStatusRepository:
     def setup_method(self):
@@ -53,8 +60,8 @@ class TestUserChallengeStatusRepository:
         assert userchallenge_status.port == mock_userchallenge_status.port
         assert userchallenge_status.status == mock_userchallenge_status.status
         
-        # assert self.mock_session.add.called_once_with(userchallenge_status)
-        assert self.mock_session.commit.called_once()
+        self.mock_session.add.assert_called_once_with(userchallenge_status)
+        self.mock_session.commit.assert_called_once()
     
     def test_create_invalid_input(self):
         with pytest.raises(InvalidInputValue) as e:
@@ -72,8 +79,8 @@ class TestUserChallengeStatusRepository:
         assert userchallenge_status.port == 8080
         assert userchallenge_status.status == "running"
         
-        assert self.mock_session.query.return_value.filter_by.called_once_with(id_=1)
-        assert self.mock_session.query.return_value.filter_by.return_value.first.called_once_with()
+        self.mock_session.query.return_value.filter_by.assert_called_once_with(idx=1)
+        self.mock_session.query.return_value.filter_by.return_value.first.assert_called_once_with()
         
     def test_get_by_id_does_not_exist(self):
         self.mock_session.query.return_value.filter_by.return_value.first.return_value = None
@@ -92,9 +99,8 @@ class TestUserChallengeStatusRepository:
         assert userchallenge_status.port == 8080
         assert userchallenge_status.status == "running"
         
-        assert self.mock_session.query.return_value.filter_by.called_once_with(id_=1)
-        assert self.mock_session.query.return_value.filter_by.return_value.order_by.called_once_with(UserChallengeStatus.createdAt.desc())
-        assert self.mock_session.query.return_value.filter_by.return_value.order_by.return_value.first.called_once_with()
+        self.mock_session.query.return_value.filter_by.assert_called_once_with(id_=1)
+        self.mock_session.query.return_value.filter_by.return_value.order_by.return_value.first.assert_called_once_with()
 
 
     def test_update_port_success(self, mock_userchallenge_status, fake_empty_status):
@@ -107,8 +113,9 @@ class TestUserChallengeStatusRepository:
             assert userchallenge_status.port == fake_empty_status.port
             assert userchallenge_status.status == mock_userchallenge_status.status
 
-            assert mock_get_by_id.called_once_with(id_ = fake_empty_status.userchallenge_idx)
-            assert self.mock_session.commit.called_once()
+            mock_get_by_id.assert_called_once_with(id_ = fake_empty_status.userchallenge_idx)
+            self.mock_session.update.assert_called_once_with(userchallenge_status)
+            self.mock_session.commit.assert_called_once()
         
         
         
@@ -122,8 +129,24 @@ class TestUserChallengeStatusRepository:
             assert userchallenge_status.status == fake_empty_port.status
             assert userchallenge_status.port == mock_userchallenge_status.port
 
-            assert mock_get_by_id.called_once_with(id_ = fake_empty_port.userchallenge_idx)
-            assert self.mock_session.commit.called_once()
+            mock_get_by_id.assert_called_once_with(id_ = fake_empty_port.userchallenge_idx)
+            self.mock_session.update.assert_called_once_with(userchallenge_status)
+            self.mock_session.commit.assert_called_once()
         
         
-        
+    def test_update_UserChallengeStatus_success(self, mock_userchallenge_status, fake_empty_status):
+        with patch.object(self.repo, 'get_by_id') as mock_get_by_id:
+            mock_get_by_id.return_value = mock_userchallenge_status
+            
+            userchallenge_status = self.repo.update(fake_empty_status)
+            
+            assert userchallenge_status is not None
+            assert userchallenge_status.status == fake_empty_status.status
+            assert userchallenge_status.port == mock_userchallenge_status.port
+            
+            mock_get_by_id.assert_called_once_with(id_ = fake_empty_status.userchallenge_idx)
+            self.mock_session.update.assert_called_once_with(userchallenge_status)
+            self.mock_session.commit.assert_called_once()
+    
+    
+    

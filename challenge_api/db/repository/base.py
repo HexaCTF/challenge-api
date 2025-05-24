@@ -7,6 +7,9 @@ class BaseRepository(ABC):
     def create(self, object_):
         raise NotImplementedError("Subclasses must implement this method")
     
+    def get(self, **kwargs):
+        raise NotImplementedError("Subclasses must implement this method")
+    
     def get_by_id(self, id_):
         raise NotImplementedError("Subclasses must implement this method")
     

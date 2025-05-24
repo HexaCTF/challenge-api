@@ -11,9 +11,10 @@ class UChallengeStatus():
     
     @status.setter
     def status(self, value):
-        if value is "":
+        if value == "":
             self._status = "None"
-        self._status = value
+        else:
+            self._status = value
     
     @property
     def port(self):

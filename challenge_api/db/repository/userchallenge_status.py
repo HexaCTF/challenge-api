@@ -21,6 +21,9 @@ class UserChallengeStatusRepository(BaseRepository):
             raise InvalidInputValue(
                 message = "Invalid input error when creating userchallenge status"
             )
+
+    def get(self, **kwargs):
+        return self.session.query(UserChallengeStatus).filter_by(**kwargs).first()
     
     def get_by_id(self, id_):
         return self.session.query(UserChallengeStatus).filter_by(idx=id_).first()
@@ -39,9 +42,16 @@ class UserChallengeStatusRepository(BaseRepository):
                 status.status = object_.status
             if object_.port != 0:  # port가 0이 아닐 때 업데이트
                 status.port = object_.port
-                
+            
+            self.session.update(status)
             self.session.commit()
             return status
+        
+        elif isinstance(object_, UserChallengeStatus):
+            self.session.update(object_)
+            self.session.commit()
+            return object_
+        
         else:
             raise InvalidInputValue(
                 message = "Invalid input error when updating userchallenge status"
