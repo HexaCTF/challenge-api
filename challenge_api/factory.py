@@ -25,7 +25,7 @@ class FlaskApp:
         self.app.config.from_object(config_class)
         
         # 초기 설정
-        # self._init_kafka()
+        self._init_kafka()
         self._init_db()
         self._register_error_handlers()
         self._setup_blueprints()

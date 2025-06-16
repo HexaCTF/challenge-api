@@ -1,16 +1,17 @@
 from json import JSONDecodeError
 from logging import log
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from challenge_api.db.repository import UserChallengesRepository, UserChallengeStatusRepository
-from challenge_api.extensions.k8s.client import K8sClient
+from challenge_api.userchallenge.k8s import K8sClient
 from challenge_api.utils.api_decorators import validate_request_body
 from challenge_api.objects.challenge import ChallengeRequest
-from challenge_api.exceptions.service import ServiceException
+from challenge_api.exceptions.service import BaseServiceException
 from sqlalchemy.exc import SQLAlchemyError
 from kubernetes.client.rest import ApiException
 
 challenge_bp = Blueprint('challenge', __name__)
 
+container = current_app.container
 
 @challenge_bp.route('', methods=['POST'])
 @validate_request_body('challenge_id', 'user_id')
@@ -20,23 +21,28 @@ def create_challenge():
         """사용자 챌린지 생성"""
         # Challenge 관련 정보 가져오기 
         res = request.get_json()
-        body = ChallengeRequest(**res)
+        req = ChallengeRequest(**res)
+        
+        challenge = container.userchallenge_service.create(req)
+        return jsonify({'data' : {'port': challenge.port}}), 200
 
-         
-    except ServiceException as e:
-        # Service Logic 전체 
-        pass 
+    except BaseServiceException as e:
+        return jsonify({
+            'message' : 'Service Unavailable'
+        }), 503
     except SQLAlchemyError as e:
-        # Database Exception 
-        pass 
+        return jsonify({
+            'message': 'Internal server error'
+        }), 500 
     except ApiException as e:
-        # Kubernetes Exception 
-        pass 
+        return jsonify({
+            'message': 'External service error'
+            }), 502
     except Exception as e:
-        pass
+        return jsonify({
+            'message': 'Internal server error'
+            }), 500
      
-    
-    return jsonify({'data' : {'port': endpoint}}), 200
 
 @challenge_bp.route('/delete', methods=['POST'])    
 @validate_request_body('challenge_id', 'user_id')
