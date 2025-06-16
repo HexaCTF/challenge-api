@@ -53,20 +53,23 @@ def k8s_manager(mock_services):
 
 # =============== Test Case ==================
 
+
 def test_create_new_userchallenge_success(k8s_manager, mock_services, sample_request):
+    """
+    if userchallenge does not exist, create new one. 
+    """
     challenge_service, userchallenge_service, status_service = mock_services
 
-    # userchallenge가 없음 → 새로 생성
     userchallenge_service.get_by_name.return_value = None
     mock_userchallenge = MockUserChallenge(idx=1, name=sample_request.name)
     userchallenge_service.create.return_value = mock_userchallenge
-    status_service.create.return_value = None
+    status_service.create.return_value = None # create new status 
     challenge_service.get_name.return_value = "test-definition"
 
-    # status_service.get_first: Pending → Running으로 업데이트
+    # Update status: Pending     
     status_service.get_first.side_effect = [None, MockStatus(status='Pending')]
 
-    # Watch stream: Pending → Running 이벤트 발생
+    # Watch stream: Pending → Running
     mock_watch = MagicMock()
     running_event = {
         'object': {
@@ -83,12 +86,15 @@ def test_create_new_userchallenge_success(k8s_manager, mock_services, sample_req
     assert result == 8080
     userchallenge_service.create.assert_called_once()
     status_service.get_first.assert_called_once()
+    status_service.create.assert_called_once()
     k8s_manager.custom_api.create_namespaced_custom_object.assert_called_once()
 
 def test_create_existing_running_userchallenge(k8s_manager, mock_services, sample_request):
+    """
+    If userchallenge is 'Running, return port value. 
+    """
     challenge_service, userchallenge_service, status_service = mock_services
 
-    # 이미 실행중인 userchallenge
     mock_userchallenge = MockUserChallenge(idx=1, name=sample_request.name)
     userchallenge_service.get_by_name.return_value = mock_userchallenge
     mock_status = MockStatus(status='Running', port=9090)
@@ -96,7 +102,7 @@ def test_create_existing_running_userchallenge(k8s_manager, mock_services, sampl
 
     result = k8s_manager.create(sample_request)
     assert result == 9090
-    # 새로 생성하지 않음
+
     userchallenge_service.create.assert_not_called()
     k8s_manager.custom_api.create_namespaced_custom_object.assert_not_called()
 
@@ -132,7 +138,7 @@ def test_watch_timeout_or_no_endpoint(k8s_manager, mock_services, sample_request
         'object': {
             'status': {
                 'currentStatus': {'status': 'Pending'}
-                # endpoint 없음
+                # Endpoint does not exist
             }
         }
     }
