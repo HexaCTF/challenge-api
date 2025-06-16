@@ -19,11 +19,11 @@ def create_challenge():
     
     try:
         """사용자 챌린지 생성"""
-        # Challenge 관련 정보 가져오기 
         res = request.get_json()
         req = ChallengeRequest(**res)
         
-        challenge = container.userchallenge_service.create(req)
+        challenge = container.k8s_manager.create(req)
+        
         return jsonify({'data' : {'port': challenge.port}}), 200
 
     except BaseServiceException as e:

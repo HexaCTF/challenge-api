@@ -4,7 +4,7 @@ from challenge_api.userchallenge.status import UserChallengeStatusService
 from challenge_api.objects.challenge import ChallengeRequest
 from challenge_api.exceptions.service import UserChallengeCreationException
 from challenge_api.userchallenge.challenge import ChallengeService
-from challenge_api.objects.usrchallenge import UChallengeStatus
+
 
 NAMESPACE = "challenge"
 
@@ -47,7 +47,6 @@ class K8sManager:
         definition= self.challenge_service.get_name(request.challenge_id)
         
         # Create Kubernetes Challenge Objects 
-        #TODO: Name Validator 필요 
         
         challenge_manifest = {
             "apiVersion": "apps.hexactf.io/v2alpha1",
@@ -94,7 +93,7 @@ class K8sManager:
                 break
         
         if not endpoint:
-            raise UserChallengeCreationException(error_msg=f"Failed to get NodePort for Challenge: {request.name}")
+            raise UserChallengeCreationException(message=f"Failed to get NodePort for Challenge: {request.name}")
         
         recent = self.status_service.get_first(userchallenge.idx)
         if recent and recent.status == 'Pending':
