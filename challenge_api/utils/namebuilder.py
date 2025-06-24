@@ -1,8 +1,7 @@
 from typing import Optional
 import re
 
-from challenge_api.objects.challenge import ChallengeInfo
-
+from challenge_api.objects.challenge import ChallengeRequest
 class NameBuilder:
     def __init__(self, challenge_id: int, user_id: int):
         self._challenge_id = challenge_id
@@ -16,13 +15,13 @@ class NameBuilder:
         pattern = r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
         return bool(re.match(pattern, name))
     
-    def build(self) -> Optional[ChallengeInfo]:
+    def build(self) -> Optional[ChallengeRequest]:
         """
         챌린지 이름 빌더 
         
         """
         # TODO: Error Handling 추가 필요 
-        challenge_info = ChallengeInfo(challenge_id=self._challenge_id, user_id=self._user_id)
+        challenge_info = ChallengeRequest(challenge_id=self._challenge_id, user_id=self._user_id)
         if not self._is_valid_name(challenge_info.name):
             return None
         return challenge_info

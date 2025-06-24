@@ -49,22 +49,42 @@ def create_challenge():
             }), 500
      
 
-# @challenge_bp.route('/delete', methods=['POST'])    
-# @validate_request_body('challenge_id', 'user_id')
-# def delete_userchallenges():
-#     """사용자 챌린지 삭제"""
-#     try:
-#         res = request.get_json()
-#         challenge_info = ChallengeInfo(**res)
+@challenge_bp.route('/delete', methods=['POST'])    
+@validate_request_body('challenge_id', 'user_id')
+def delete_userchallenges():
+    """사용자 챌린지 삭제"""
+    try:
         
-#         # 사용자 챌린지 삭제 
-#         client = K8sClient()
-#         client.delete(challenge_info)
+        container = current_app.container
+        
+        res = request.get_json()
+        challenge_info = ChallengeRequest(**res)
+        
+        # 사용자 챌린지 삭제 
+        container.k8s_manager.delete(challenge_info)
                 
-#         return jsonify({'message' : '챌린지가 정상적으로 삭제되었습니다.'}), 200
-#     except JSONDecodeError as e:
-#         log.error("Invalid request format")
-#         raise InvalidRequest(error_msg=str(e)) from e
+        return jsonify({'message' : '챌린지가 정상적으로 삭제되었습니다.'}), 200
+
+    except InvalidInputValue as e:
+        return jsonify({
+            'message': 'Invalid input value'
+        }), 400 
+    except BaseServiceException as e:
+        return jsonify({
+            'message' : 'Service Unavailable'
+        }), 503
+    except SQLAlchemyError as e:
+        return jsonify({
+            'message': 'Internal server error'
+        }), 500 
+    except ApiException as e:
+        return jsonify({
+            'message': 'External service error'
+            }), 502
+    except Exception as e:
+        return jsonify({
+            'message': 'Internal server error'
+            }), 500
 
 # @challenge_bp.route('/status', methods=['POST'])
 # @validate_request_body('challenge_id', 'user_id')

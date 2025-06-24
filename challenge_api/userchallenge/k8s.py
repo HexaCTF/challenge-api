@@ -2,8 +2,12 @@ from kubernetes import client, config, watch
 from challenge_api.userchallenge.userchallenge import UserChallengeService
 from challenge_api.userchallenge.status import UserChallengeStatusService
 from challenge_api.objects.challenge import ChallengeRequest
-from challenge_api.exceptions.service import UserChallengeCreationException
+from challenge_api.exceptions.service import (
+    UserChallengeCreationException,
+    UserChallengeDeletionException,
+)
 from challenge_api.userchallenge.challenge import ChallengeService
+from challenge_api.utils.namebuilder import NameBuilder
 
 
 NAMESPACE = "challenge"
@@ -103,36 +107,37 @@ class K8sManager:
         
         return endpoint
 
-    # def delete(self, challenge_info: ChallengeInfo, namespace="challenge"):
-    #     """
-    #     Challenge Custom Resource를 삭제합니다.
+    def delete(self, challenge_info: ChallengeRequest, namespace="challenge"):
+        """
+        Challenge Custom Resource를 삭제합니다.
         
-    #     Args:
-    #         challenge_info (ChallengeInfo): Challenge 삭제 요청 데이터
-    #         namespace (str): Challenge가 생성된 네임스페이스 (기본값: "default")
+        Args:
+            challenge_info (ChallengeInfo): Challenge 삭제 요청 데이터
+            namespace (str): Challenge가 생성된 네임스페이스 (기본값: "default")
             
-    #     Raises:
-    #         UserChallengeDeletionError: Challenge 삭제에 실패했을 때
-    #     """
+        Raises:
+            UserChallengeDeletionError: Challenge 삭제에 실패했을 때
+        """
         
-    #     # UserChallenge 조회
-    #     namebuilder = NameBuilder(challenge_id=challenge_info.challenge_id, user_id=challenge_info.user_id)
-    #     challenge_info = namebuilder.build()
-    #     user_challenge_repo = UserChallengesRepository()
-    #     user_challenge = user_challenge_repo.get_by_user_challenge_name(challenge_info.name)
-    #     if not user_challenge:
-    #         raise UserChallengeDeletionError(error_msg=f"Deletion : UserChallenge not found: {challenge_info.name}")
+        # UserChallenge 조회
+        namebuilder = NameBuilder(challenge_id=challenge_info.challenge_id, user_id=challenge_info.user_id)
+        challenge_info = namebuilder.build()
+        user_challenge = self.userchallenge_service.get_by_name(name=challenge_info.name)
+        if not user_challenge:
+            raise UserChallengeDeletionException(
+                message=f"Deletion : UserChallenge not found: {challenge_info.name}"
+            )
         
-    #     # 사용자 챌린지(컨테이너) 삭제 
-    #     try:
-    #         self.custom_api.delete_namespaced_custom_object(
-    #             group="apps.hexactf.io",
-    #             version="v2alpha1",
-    #             namespace=namespace,
-    #             plural="challenges",
-    #             name=challenge_info.name
-    #         )
+        # 사용자 챌린지(컨테이너) 삭제 
+        try:
+            self.custom_api.delete_namespaced_custom_object(
+                group="apps.hexactf.io",
+                version="v2alpha1",
+                namespace=namespace,
+                plural="challenges",
+                name=challenge_info.name
+            )
             
-    #     except Exception as e:
-    #         raise UserChallengeDeletionError(error_msg=str(e)) from e
+        except Exception as e:
+            raise UserChallengeDeletionException(message=str(e)) from e
  

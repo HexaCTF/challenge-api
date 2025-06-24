@@ -47,7 +47,11 @@ class UserChallengeCreationException(UserChallengeException):
     """UserChallenge 생성 중 예외"""
     def __init__(self, message:str):
         super().__init__(message)
-        
+
+class UserChallengeDeletionException(UserChallengeException):
+    """UserChallenge 삭제 중 예외"""
+    def __init__(self, message:str):
+        super().__init__(message)
         
         
         
