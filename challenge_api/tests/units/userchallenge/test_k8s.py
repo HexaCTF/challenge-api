@@ -4,7 +4,8 @@ from unittest.mock import MagicMock, patch
 from challenge_api.objects.challenge import ChallengeRequest
 from challenge_api.userchallenge.k8s import K8sManager
 from challenge_api.exceptions.service import (
-    UserChallengeCreationException
+    UserChallengeCreationException,
+    UserChallengeDeletionException,
 )
 from kubernetes.client.rest import ApiException
 
@@ -181,3 +182,85 @@ def test_challenge_manifest_structure(k8s_manager, mock_services, sample_request
     assert manifest['metadata']['labels']['apps.hexactf.io/userId'] == str(sample_request.user_id)
     assert manifest['spec']['namespace'] == NAMESPACE
     assert manifest['spec']['definition'] == "test-definition"
+
+# delete
+def test_delete_success(
+    k8s_manager,
+    mock_services,
+    sample_request
+):
+    # Given 
+    _, userchallenge_svc, _ = mock_services
+    
+    userchallenge_svc.get_by_name.return_value = MockUserChallenge(
+        idx=1, name=sample_request.name
+        )
+    
+    k8s_manager.custom_api.delete_namespaced_custom_object.return_value = {
+        'status':'Success'
+    }
+    
+    # When
+    k8s_manager.delete(sample_request)
+    
+    # Then 
+    userchallenge_svc.get_by_name.assert_called_once_with(
+        name=sample_request.name
+    )
+    k8s_manager.custom_api.delete_namespaced_custom_object.assert_called_once_with(
+                group="apps.hexactf.io",
+                version="v2alpha1",
+                namespace="challenge",
+                plural="challenges",
+                name=sample_request.name
+            )
+
+def test_delete_userchallenge_not_found(
+    k8s_manager,
+    mock_services,
+    sample_request
+):
+    # Given
+    _, userchallenge_svc, _ = mock_services
+        
+    userchallenge_svc.get_by_name.return_value = None
+    
+    # When
+    with pytest.raises(UserChallengeDeletionException) as exc_info:
+        k8s_manager.delete(sample_request)
+    
+    # Then
+    assert "Deletion : UserChallenge not found: challenge-123-456" in str(exc_info.value)
+    
+    # UserChallenge 조회까지는 호출되었는지 확인
+    userchallenge_svc.get_by_name.assert_called_once_with(
+        name=sample_request.name
+    )
+    
+    # Kubernetes API는 호출되지 않았는지 확인
+    k8s_manager.custom_api.delete_namespaced_custom_object.assert_not_called()
+
+def test_delete_k8s_resource_not_found_handled_gracefully(
+    k8s_manager,
+    mock_services,
+    sample_request
+):
+    # Given
+    _, userchallenge_svc, _ = mock_services
+    
+    mock_user_challenge = MockUserChallenge(idx=1, name="challenge-123-456")
+    userchallenge_svc.get_by_name.return_value = mock_user_challenge
+    
+    api_error = ApiException(status=404, reason='Not Found')
+    k8s_manager.custom_api.delete_namespaced_custom_object.side_effect = api_error
+    
+    # When
+    with pytest.raises(ApiException) as exc_info:
+        k8s_manager.delete(sample_request)
+    
+    # Then
+    assert exc_info.value.status == 404
+    assert "Not Found" in str(exc_info.value)
+    
+    k8s_manager.custom_api.delete_namespaced_custom_object.assert_called_once()
+    

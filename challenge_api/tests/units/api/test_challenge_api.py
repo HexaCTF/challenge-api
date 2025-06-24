@@ -4,10 +4,12 @@ from flask import Flask
 
 from challenge_api.api.challenge_api import challenge_bp
 from challenge_api.exceptions.service import (
+    InvalidInputValue,
     BaseServiceException,
     UserChallengeCreationException,
+    ChallengeStatusNotFound,
 )
-
+from challenge_api.objects.usrchallenge import UChallengeStatus
 from sqlalchemy.exc import SQLAlchemyError
 from kubernetes.client.rest import ApiException
 
@@ -29,7 +31,9 @@ def client():
             # 클라이언트와 컨테이너를 함께 리턴
             yield test_client, mock_container
 
-
+"""
+/create 
+"""
 def test_create_challenge_success(client):
     test_client, mock_container = client
 
@@ -101,3 +105,94 @@ def test_create_challenge_generic_exception(client):
 
     assert response.status_code == 500
     assert response.json['message'] == 'Internal server error'
+
+
+"""
+/delete
+"""
+def test_delete_success(client):
+    test_client, mock_container = client
+
+    # success k8s manager return value 
+    mock_container.k8s_manager.delete.return_value = None
+    
+    payload = {'challenge_id': 1, 'user_id': 101}
+    response = test_client.post('/challenge/delete', json=payload)
+    
+    assert response.status_code == 200
+    
+def test_delete_invalid_input(client):
+    test_client, mock_container = client
+
+    mock_container.k8s_manager.delete.side_effect = InvalidInputValue(message='error')
+    
+    payload = {'challenge_id': 1, 'user_id': 101}
+    response = test_client.post('/challenge/delete', json=payload)
+    
+    assert response.status_code == 503
+    assert response.json['message'] == 'Service Unavailable'
+
+def test_delete_k8s_delete_error(client):
+    test_client, mock_container = client
+
+    mock_container.k8s_manager.delete.side_effect = ApiException()
+    
+    payload = {'challenge_id': 1, 'user_id': 101}
+    response = test_client.post('/challenge/delete', json=payload)
+    
+    assert response.status_code == 502
+    assert response.json['message'] == 'External service error'
+
+def test_delete_generic_exception(client):
+    test_client, mock_container = client
+
+    mock_container.k8s_manager.delete.side_effect = Exception("Unexpected error")
+
+    payload = {'challenge_id': 1, 'user_id': 101}
+    response = test_client.post('/challenge/delete', json=payload)
+
+    assert response.status_code == 500
+    assert response.json['message'] == 'Internal server error'
+
+# /status
+
+def test_get_status_success(client):
+    # Given 
+    test_client, mock_container = client
+    
+    mock_container.status_service.get_by_name.return_value = UChallengeStatus(
+        userchallenge_idx = 1,
+        port = 8080,
+        status= 'running'
+    )
+    
+    # When
+    payload = {'challenge_id': 1, 'user_id': 101}
+    response = test_client.post('/challenge/status', json=payload)
+    
+    assert response.status_code == 200
+    assert response.json['data']['port'] == 8080
+    assert response.json['data']['status'] == 'running'
+    
+    
+def test_get_status_not_found(client):
+    test_client, mock_container = client
+    
+    mock_container.status_service.get_by_name.side_effect = ChallengeStatusNotFound(
+        message = 'Not Found'    
+    )
+    
+    payload = {'challenge_id': 1, 'user_id': 101}
+    response = test_client.post('/challenge/status', json=payload)
+    
+    assert response.status_code == 503
+    assert response.json['message'] == 'Service Unavailable'
+    
+    
+    
+    
+    
+    
+    
+    
+    

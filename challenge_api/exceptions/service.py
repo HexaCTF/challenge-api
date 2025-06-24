@@ -52,6 +52,13 @@ class UserChallengeDeletionException(UserChallengeException):
     """UserChallenge 삭제 중 예외"""
     def __init__(self, message:str):
         super().__init__(message)
+
+# Status
+class ChallengeStatusException(BaseServiceException):
+    def __init__(self, message:str):
+        super().__init__(message)
         
-        
+class ChallengeStatusNotFound(ChallengeStatusException):
+    def __init__(self, message:str):
+        super().__init__(message)
         

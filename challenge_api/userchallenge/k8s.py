@@ -120,24 +120,16 @@ class K8sManager:
         """
         
         # UserChallenge 조회
-        namebuilder = NameBuilder(challenge_id=challenge_info.challenge_id, user_id=challenge_info.user_id)
-        challenge_info = namebuilder.build()
         user_challenge = self.userchallenge_service.get_by_name(name=challenge_info.name)
         if not user_challenge:
             raise UserChallengeDeletionException(
                 message=f"Deletion : UserChallenge not found: {challenge_info.name}"
             )
-        
-        # 사용자 챌린지(컨테이너) 삭제 
-        try:
-            self.custom_api.delete_namespaced_custom_object(
-                group="apps.hexactf.io",
-                version="v2alpha1",
-                namespace=namespace,
-                plural="challenges",
-                name=challenge_info.name
-            )
-            
-        except Exception as e:
-            raise UserChallengeDeletionException(message=str(e)) from e
+        self.custom_api.delete_namespaced_custom_object(
+            group="apps.hexactf.io",
+            version="v2alpha1",
+            namespace=namespace,
+            plural="challenges",
+            name=challenge_info.name
+        )
  
