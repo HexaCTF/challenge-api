@@ -188,7 +188,7 @@ def test_get_status_not_found(client):
     assert response.status_code == 503
     assert response.json['message'] == 'Service Unavailable'
     
-    
+
     
     
     
