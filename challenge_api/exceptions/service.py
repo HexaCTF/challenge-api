@@ -3,7 +3,7 @@ class BaseServiceException(Exception):
     def __init__(self, message:str):
         super().__init__(message)
         self.message = message or "An unexpected error occurred"
-
+    
     def __str__(self):
         return f"{self.__class__.__name__}: {self.message}"
 
@@ -47,7 +47,18 @@ class UserChallengeCreationException(UserChallengeException):
     """UserChallenge 생성 중 예외"""
     def __init__(self, message:str):
         super().__init__(message)
+
+class UserChallengeDeletionException(UserChallengeException):
+    """UserChallenge 삭제 중 예외"""
+    def __init__(self, message:str):
+        super().__init__(message)
+
+# Status
+class ChallengeStatusException(BaseServiceException):
+    def __init__(self, message:str):
+        super().__init__(message)
         
-        
-        
+class ChallengeStatusNotFound(ChallengeStatusException):
+    def __init__(self, message:str):
+        super().__init__(message)
         

@@ -18,7 +18,7 @@ class UserChallengeService:
     
         return self.userchallenge_repository.get_by_id(request.challenge_id) is not None
     
-    def get_by_name(self, name:str) -> Optional[UChallengeStatus]:
+    def get_by_name(self, name:str) -> Optional[UserChallenges]:
     
         kwarg = {
             "userChallengeName": name

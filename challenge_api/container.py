@@ -21,7 +21,8 @@ class Container:
             self.challenge_service
         )
         self.status_service = UserChallengeStatusService(
-            self.userchallenge_status_repo
+            self.userchallenge_status_repo,
+            self.userchallenge_service
         )
 
         # Manager
