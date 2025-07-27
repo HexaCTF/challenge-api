@@ -9,7 +9,6 @@ class Config:
     - 데이터베이스 연결 설정
     - SQLAlchemy ORM 설정
     - 보안 관련 설정
-    - Loki 로깅 설정
     """
     
     # =========================================================================
@@ -49,28 +48,5 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True      # JavaScript에서 세션 쿠키 접근 방지
     SESSION_COOKIE_SAMESITE = 'Lax'     # CSRF 공격 방지를 위한 SameSite 설정
     
-    # =========================================================================
-    # Loki 로깅 설정
-    # =========================================================================
-    # 애플리케이션 식별자
-    APP_NAME = os.getenv('APP_NAME', 'challenge-service')
-
-    # Loki 서버 설정
-    LOKI_PROTOCOL = os.getenv('LOKI_PROTOCOL', 'http')
-    LOKI_HOST = os.getenv('LOKI_HOST', '127.0.0.1')
-    LOKI_PORT = os.getenv('LOKI_PORT', '3100')
-    LOKI_PATH = os.getenv('LOKI_PATH', '/loki/api/v1/push')
-    
-    # Loki URL 구성
-    LOKI_URL = f"{LOKI_PROTOCOL}://{LOKI_HOST}:{LOKI_PORT}{LOKI_PATH}"
-
-    # 로그 레벨 설정
-    LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
-
-    # 로그 태그 설정
-    LOG_TAGS = {
-        "application": APP_NAME,
-        "environment": os.getenv('ENVIRONMENT', 'development')
-    }
 
     TEST_MODE = "true"
