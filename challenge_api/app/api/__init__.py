@@ -1,4 +1,5 @@
-import os
+
+__all__ = ['challenge_bp']
 import sys
 
 from flask import Flask
