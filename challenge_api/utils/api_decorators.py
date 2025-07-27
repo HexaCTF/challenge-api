@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import request
-from challenge_api.exceptions.api_exceptions import InvalidRequest
+from challenge_api.exceptions.service import InvalidInputValue
 
 def validate_request_body(*required_fields):
     """
@@ -14,13 +14,13 @@ def validate_request_body(*required_fields):
         def decorated_function(*args, **kwargs):
             res = request.get_json()
             if not res:
-                raise InvalidRequest(error_msg="Request body is empty or not valid JSON")
+                raise InvalidInputValue(message="Request body is empty or not valid JSON")
             
             for field in required_fields:
                 if field not in res:
-                    raise InvalidRequest(error_msg=f"Required field '{field}' is missing in request")
+                    raise InvalidInputValue(message=f"Required field '{field}' is missing in request")
                 if not res[field]:
-                    raise InvalidRequest(error_msg=f"'{field}' is empty or not valid")
+                    raise InvalidInputValue(message=f"'{field}' is empty or not valid")
                     
             return f(*args, **kwargs)
         return decorated_function

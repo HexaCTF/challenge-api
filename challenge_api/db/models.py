@@ -1,9 +1,6 @@
 from datetime import datetime, timedelta
-from enum import Enum
-from challenge_api.extensions_manager import db
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import relationship
-
+from challenge_api.db.db_manager import db
 def current_time_kst():
     return datetime.utcnow() + timedelta(hours=9)
 
@@ -96,9 +93,9 @@ class UserChallenges(db.Model):
     createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
 
 
-# UserChallenges_status Table Model
-class UserChallenges_status(db.Model):
-    __tablename__ = 'UserChallenges_status'
+# UserChallengeStatus Table Model
+class UserChallengeStatus(db.Model):
+    __tablename__ = 'UserChallengeStatus'
 
     idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
     port = db.Column(db.Integer, nullable=False)
