@@ -9,7 +9,6 @@ class Config:
     - 데이터베이스 연결 설정
     - SQLAlchemy ORM 설정
     - 보안 관련 설정
-    - Kafka 메시징 설정
     - Loki 로깅 설정
     """
     
@@ -50,25 +49,6 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True      # JavaScript에서 세션 쿠키 접근 방지
     SESSION_COOKIE_SAMESITE = 'Lax'     # CSRF 공격 방지를 위한 SameSite 설정
     
-    # =========================================================================
-    # Kafka 메시징 설정
-    # =========================================================================
-    # Kafka 브로커 및 토픽 설정
-    KAFKA_BOOTSTRAP_SERVERS = os.getenv(
-        'KAFKA_BOOTSTRAP_SERVERS', 
-        'localhost:9093'
-    )  # Kafka 브로커 주소
-    
-    KAFKA_TOPIC = os.getenv(
-        'KAFKA_TOPIC', 
-        'challenge-status'
-    )  # 메시지 토픽명
-    
-    KAFKA_GROUP_ID = os.getenv(
-        'KAFKA_GROUP_ID', 
-        'challenge-consumer-group'
-    )  # 컨슈머 그룹 ID
-
     # =========================================================================
     # Loki 로깅 설정
     # =========================================================================

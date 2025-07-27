@@ -7,16 +7,9 @@ from typing import Type
 from challenge_api.exceptions.http import BaseHttpException
 from challenge_api.api.challenge_api import challenge_bp
 from challenge_api.config import Config
-from challenge_api.extensions.kafka.handler import MessageHandler
-from challenge_api.extensions_manager import kafka_consumer
 from challenge_api.db.db_manager import db
 
 from challenge_api.container import Container
-
-def start_kafka_consumer(app):
-    """Start Kafka consumer in a separate thread"""
-    with app.app_context():
-        kafka_consumer.start_consuming(MessageHandler.handle_message)
 
 class FlaskApp:
     def __init__(self, config_class: Type[Config] = Config):
@@ -24,18 +17,11 @@ class FlaskApp:
         self.app = Flask(__name__)
         self.app.config.from_object(config_class)
         
-        # 초기 설정
-        self._init_kafka()
         self._init_db()
         self._register_error_handlers()
         self._setup_blueprints()
         self._inject()
 
-    def _init_kafka(self):
-        """Extensions 초기화"""
-        # Kafka 초기화
-        kafka_consumer.init_app(self.app)
-        kafka_consumer.start_consuming(MessageHandler.handle_message)
     
     def _init_db(self):
         # DB 초기화
