@@ -70,11 +70,6 @@ class InternalServerError(BaseHttpException):
     def __init__(self, message: str = "Internal server error", details: Optional[str] = None):
         super().__init__(message, 500, details)
 
-class NotImplemented(BaseHttpException):
-    """Not Implemented - 501"""
-    def __init__(self, message: str = "Feature not implemented", details: Optional[str] = None):
-        super().__init__(message, 501, details)
-
 class BadGateway(BaseHttpException):
     """Bad Gateway - 502"""
     def __init__(self, message: str = "Bad gateway", details: Optional[str] = None):

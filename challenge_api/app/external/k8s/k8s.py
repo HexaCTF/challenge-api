@@ -1,7 +1,7 @@
 from kubernetes import client, config, watch
-from challenge_api.userchallenge.userchallenge import UserChallengeService
-from challenge_api.userchallenge.status import UserChallengeStatusService
-from challenge_api.objects.challenge import ChallengeRequest
+from challenge_api.app.service.userchallenge import UserChallengeService
+from challenge_api.app.service.status import UserChallengeStatusService
+from challenge_api.app.schema import ChallengeRequest
 from challenge_api.exceptions.service import (
     UserChallengeCreationException,
     UserChallengeDeletionException,
@@ -35,36 +35,21 @@ class K8sManager:
         self.status_service = status_service
     
     
-    def create(self, request: ChallengeRequest):
-        
-        # 1. Create New UserChallenge if it doesn't exist
-        userchallenge = self.userchallenge_service.get_by_name(request.name)
-        if not userchallenge:
-            userchallenge = self.userchallenge_service.create(request)
-            self.status_service.create(id_=userchallenge.idx)
-        else:
-            recent = self.status_service.get_first(userchallenge.idx)
-            if recent and recent.status == 'Running':
-                return recent.port
-        
-        # Get definition name
-        definition= self.challenge_service.get_name(request.challenge_id)
-        
-        # Create Kubernetes Challenge Objects 
-        
+    def create(self, data:K8sChallengeData) -> int:
+                        
         challenge_manifest = {
             "apiVersion": "apps.hexactf.io/v2alpha1",
             "kind": "Challenge",
             "metadata": {
-                "name": request.name,
+                "name": data.name,
                 "labels": {
-                    "apps.hexactf.io/challengeId": str(request.challenge_id),
-                    "apps.hexactf.io/userId": str(request.user_id)
+                    "apps.hexactf.io/challengeId": str(data.challenge_id),
+                    "apps.hexactf.io/userId": str(data.user_id)
                 }
             },
             "spec": {
                 "namespace": NAMESPACE,
-                "definition": definition
+                "definition": data.definition
             }
         }
             
@@ -95,16 +80,7 @@ class K8sManager:
                 endpoint = status.get('endpoint')
                 w.stop()
                 break
-        
-        if not endpoint:
-            raise UserChallengeCreationException(message=f"Failed to get NodePort for Challenge: {request.name}")
-        
-        recent = self.status_service.get_first(userchallenge.idx)
-        if recent and recent.status == 'Pending':
-            recent.status = 'Running'
-            recent.port = endpoint
-            self.status_service.update(recent)
-        
+                
         return endpoint
 
     def delete(self, challenge_info: ChallengeRequest, namespace="challenge"):

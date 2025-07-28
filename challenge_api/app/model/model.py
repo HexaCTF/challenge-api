@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
 from sqlalchemy import ForeignKey
-from challenge_api.db.db_manager import db
+from challenge_api.app.external.database import Base
+
 def current_time_kst():
     return datetime.utcnow() + timedelta(hours=9)
 
 # Users Table Model
-class Users(db.Model):
+class Users(Base):
     __tablename__ = 'Users'
     
     idx = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
@@ -28,7 +29,7 @@ class Users(db.Model):
     passwordTime = db.Column(db.DateTime, default=current_time_kst, nullable=False)  # 함수 참조
 
 # Teams Table Model
-class Teams(db.Model):
+class Teams(Base):
     __tablename__ = 'Teams'
 
     teamName = db.Column(db.String(20), primary_key=True, nullable=False)
@@ -44,7 +45,7 @@ class Teams(db.Model):
     createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)  # 함수 참조
 
 # Notifications Table Model
-class Notifications(db.Model):
+class Notifications(Base):
     __tablename__ = 'Notifications'
 
     idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -56,7 +57,7 @@ class Notifications(db.Model):
     playSound = db.Column(db.Boolean, default=True, nullable=False)  # playSound 컬럼 추가
 
 # Challenges Table Model
-class Challenges(db.Model):
+class Challenges(Base):
     __tablename__ = 'Challenges'
 
     idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -83,7 +84,7 @@ class Challenges(db.Model):
     isPersistence = db.Column(db.Boolean, default=False, nullable=False)
 
 # UserChallenges Table Model
-class UserChallenges(db.Model):
+class UserChallenges(Base):
     __tablename__ = 'UserChallenges'
 
     idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -94,7 +95,7 @@ class UserChallenges(db.Model):
 
 
 # UserChallengeStatus Table Model
-class UserChallengeStatus(db.Model):
+class UserChallengeStatus(Base):
     __tablename__ = 'UserChallengeStatus'
 
     idx = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -104,7 +105,7 @@ class UserChallengeStatus(db.Model):
     userChallenge_idx = db.Column(db.Integer, db.ForeignKey('UserChallenges.idx'), nullable=False)
 
 # Submissions Table Model
-class Submissions(db.Model):
+class Submissions(Base):
     __tablename__ = 'Submissions'
 
     idx = db.Column(db.Integer, primary_key=True, autoincrement=True)

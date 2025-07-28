@@ -1,5 +1,5 @@
 __version__ = '1.0.0'
 
-__all__ = ['MariaDBConfig']
+from .model import Users, Teams, Notifications, Challenges, UserChallenges, UserChallengeStatus, Submissions
 
-from challenge_api.db.config import MariaDBConfig
+__all__ = ['Users', 'Teams', 'Notifications', 'Challenges', 'UserChallenges', 'UserChallengeStatus', 'Submissions']
