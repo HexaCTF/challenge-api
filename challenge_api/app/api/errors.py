@@ -1,9 +1,10 @@
 from typing import Tuple, Optional
 from datetime import datetime
 
-from flask import jsonify, Response, current_app, request
+from fastapi import Request, JSONResponse
+from fastapi.logger import logger
 
-from . import v1
+from .userchallenge import router
 
 class BaseHttpException(Exception):
     """
@@ -108,37 +109,46 @@ def create_error_response(
     
     return jsonify(response), status_code
 
-@v1.errorhandler(BaseHttpException)
-def handle_http_exception(error: BaseHttpException) -> Tuple[Response, int]:
+# Global exception handler for BaseHttpException
+@router.exception_handler(BaseHttpException)
+async def handle_http_exception(request: Request, error: BaseHttpException):
     """
     Global error handler for all BaseHttpException instances
     
     Args:
+        request (Request): The FastAPI request object
         error (BaseHttpException): The caught exception instance
         
     Returns:
-        Tuple[Response, int]: Standardized error response
+        JSONResponse: Standardized error response
     """
     
     # Create log message with context information
     log_data = {
         'error_type': type(error).__name__,
         'status_code': error.status_code,
-        'endpoint': request.endpoint,
+        'endpoint': request.url.path,
         'method': request.method,
-        'url': request.url,
-        'remote_addr': request.remote_addr,
+        'url': str(request.url),
+        'client_host': request.client.host if request.client else None,
     }
     
     if error.details:
         log_data['details'] = error.details
     
-    current_app.logger.error(
+    logger.error(
         f"Error: {error.message}",
         extra=log_data
     )
     
-    return create_error_response(
-        message=error.message,
+    response_data = {
+        'error': {
+            'message': error.message,
+        },
+        'timestamp': datetime.utcnow().isoformat()
+    }
+    
+    return JSONResponse(
         status_code=error.status_code,
+        content=response_data
     )

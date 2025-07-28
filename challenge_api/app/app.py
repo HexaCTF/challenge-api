@@ -1,7 +1,6 @@
-from challenge_api.factory import create_app
+from .app import create_app
 
-app = create_app()
-
-# start app
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True, port=5001)
+if __name__ == "__main__":
+    import uvicorn
+    app = create_app()
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
