@@ -24,7 +24,6 @@ class UserChallengesRepository():
             self.session.add(userchallenge)
         return userchallenge
         
-    
     def get_by_id(self, idx: int) -> Optional[UserChallenges]:
         return self.session.query(UserChallenges).filter_by(idx=idx).first()
     
