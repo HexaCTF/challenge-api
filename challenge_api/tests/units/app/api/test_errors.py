@@ -199,6 +199,10 @@ def test_handle_http_exception_without_details(mocker, app):
             }
         )
         
+        call_args = mock_logger.error.call_args
+        extra_data = call_args[1]['extra']
+        assert 'details' not in extra_data
+        
         mock_create_error_response.assert_called_once_with(
             message="Invalid user ID",
             status_code=400
