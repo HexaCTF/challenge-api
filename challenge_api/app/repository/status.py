@@ -7,13 +7,23 @@ class UserChallengeStatusRepository:
     def __init__(self, session:Session):
         self.session = session
     
-    def create(self, data:StatusData):
-        userchallenge_status = UserChallengeStatus(**data.model_dump())
+    def create(self, **kwargs):
+        userchallenge_status = UserChallengeStatus(**kwargs)
         with self.session.begin():
             self.session.add(userchallenge_status)
-        return userchallenge_status
-        
-    def first(self, userchallenge_idx: int):
+                    
+        return data
+    
+    def first(self, userchallenge_idx: int) -> StatusData:
+        status = self._first(userchallenge_idx)
+        return StatusData(
+            idx=status.idx,
+            user_challenge_idx=status.user_challenge_idx,
+            status=status.status,
+            port=status.port
+        )
+    
+    def _first(self, userchallenge_idx: int) -> UserChallengeStatus:
         return self.session.query(UserChallengeStatus) \
             .filter_by(userchallenge_idx=userchallenge_idx) \
             .order_by(UserChallengeStatus.createdAt.desc()) \

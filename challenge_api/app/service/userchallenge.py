@@ -25,8 +25,17 @@ class UserChallengeService:
         return self._create_new_user_challenge(data)
     
     def _create_new_user_challenge(self, data:ChallengeRequest):
-        self.user_challenge_repo.create(data)
-        recent = self.status_repo.create(StatusData(userchallenge_idx=data.user_id))
+        user_challenge = self.user_challenge_repo.create(
+            user_idx=data.user_id,
+            C_idx=data.challenge_id,
+            userChallengeName=data.name
+        )
+        
+        recent = self.status_repo.create(
+            user_challenge_idx=user_challenge.idx,
+            status='None',
+            port=0
+        )
         return self._handle_existing_challenge(recent)
     
     def _handle_existing_challenge(self, status_data:StatusData) -> int:

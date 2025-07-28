@@ -11,11 +11,15 @@ class UserChallengesRepository():
         self.session:Session = session
         self.challenge_repo:ChallengeRepository = None
         
-    def create(self, data:UserChallengeData) -> Optional[UserChallenges]:
-        userchallenge = UserChallenges(**data.model_dump())
+    def create(self, **kwargs) -> Optional[UserChallenges]:
+        userchallenge = UserChallenges(**kwargs)
         
         with self.session.begin():
-            challenge =self.challenge_repo.get_by_id(data.C_idx)
+            challenge = self.challenge_repo.get_by_id(kwargs.get('C_idx'))
+            if not challenge:
+                raise InvalidInputValue(
+                    message=f"Challenge with id {kwargs.get('C_idx')} not found"
+                )
             
             self.session.add(userchallenge)
         return userchallenge

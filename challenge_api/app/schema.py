@@ -21,15 +21,10 @@ class UserChallengeData:
 
 @dataclass
 class StatusData:
-    userchallenge_idx: int
+    idx: int 
+    user_challenge_idx: int
     status: str
     port: int
-
-class Status(BaseModel):
-    userchallenge_idx: int
-    status: str
-    port: int
-    
 
 @dataclass
 class K8sChallengeData:

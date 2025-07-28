@@ -16,13 +16,13 @@ userchallenge_bp = Blueprint('userchallenge', __name__)
 @userchallenge_bp.route('', methods=['POST'])
 @validate_request_body('challenge_id', 'user_id')
 def create_challenge():
-    container = current_app.container
+
     try:
         """사용자 챌린지 생성"""
         res = request.get_json()
         req = ChallengeRequest(**res)
         
-        # challenge = container.k8s_manager.create(req)
+        # service 
         
         return jsonify({'data' : {'port': challenge.port}}), 200
     except InvalidInputValue as e:

@@ -102,7 +102,7 @@ class UserChallengeStatus(Base):
     port = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), nullable=False, default='None')
     createdAt = db.Column(db.DateTime, default=current_time_kst, nullable=False)
-    userChallenge_idx = db.Column(db.Integer, db.ForeignKey('UserChallenges.idx'), nullable=False)
+    user_challenge_idx = db.Column(db.Integer, db.ForeignKey('UserChallenges.idx'), nullable=False)
 
 # Submissions Table Model
 class Submissions(Base):
