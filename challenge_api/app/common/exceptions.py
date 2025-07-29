@@ -1,5 +1,5 @@
 
-class BaseServiceException(Exception):
+class BaseException(Exception):
     def __init__(self, message:str):
         super().__init__(message)
         self.message = message or "An unexpected error occurred"
@@ -9,9 +9,32 @@ class BaseServiceException(Exception):
 
 
 """
+Repository
+"""
+class RepositoryException(BaseException):
+    """Repository 관련 예외"""
+    def __init__(self, message:str):
+        super().__init__(message)
+
+class ChallengeRepositoryException(RepositoryException):
+    """Challenge Repository 관련 예외"""
+    def __init__(self, message:str):
+        super().__init__(message)
+
+class UserChallengeRepositoryException(RepositoryException):
+    """UserChallenge Repository 관련 예외"""
+    def __init__(self, message:str):
+        super().__init__(message)
+
+class StatusRepositoryException(RepositoryException):
+    """Status Repository 관련 예외"""
+    def __init__(self, message:str):
+        super().__init__(message)
+
+"""
 Etc.. 
 """
-class InvalidInputValue(BaseServiceException):
+class InvalidInputValue(BaseException):
     """Invalid Input Value"""
     def __init__(self, message:str):
         super().__init__(message)
@@ -20,7 +43,7 @@ class InvalidInputValue(BaseServiceException):
 """
 Challenge 
 """
-class ChallengeException(BaseServiceException):
+class ChallengeException(BaseException):
     """Challenge 관련 기본 예외"""
     def __init__(self, message:str):
         super().__init__(message)
@@ -33,7 +56,7 @@ class ChallengeNotFound(ChallengeException):
 """
 UserChallenge
 """
-class UserChallengeException(BaseServiceException):
+class UserChallengeException(BaseException):
     """UserChallenge 관련 기본 예외"""
     def __init__(self, message:str):
         super().__init__(message)
@@ -54,7 +77,7 @@ class UserChallengeDeletionException(UserChallengeException):
         super().__init__(message)
 
 # Status
-class ChallengeStatusException(BaseServiceException):
+class ChallengeStatusException(BaseException):
     def __init__(self, message:str):
         super().__init__(message)
         

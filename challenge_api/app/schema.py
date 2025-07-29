@@ -1,35 +1,32 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Optional
 
 class ChallengeRequest(BaseModel):
-    challenge_id: int
-    user_id: int
+    challenge_id: int = Field(..., description="Challenge ID")
+    user_id: int = Field(..., description="User ID")
     
     @property
     def name(self) -> str:
         return f"challenge-{self.challenge_id}-{self.user_id}"
 
-@dataclass
-class ChallengeData:
-    challenge_id: int
-    user_id: int
+class ChallengeData(BaseModel):
+    challenge_id: int = Field(..., description="Challenge ID")
+    user_id: int = Field(..., description="User ID")
 
-@dataclass
-class UserChallengeData:
-    C_idx: int
-    user_id: int
-    name: str
+class UserChallengeData(BaseModel):
+    C_idx: int = Field(..., description="Challenge index")
+    user_id: int = Field(..., description="User ID")
+    name: Optional[str] = Field(None, description="Challenge name")
 
-@dataclass
-class StatusData:
-    idx: int 
-    user_challenge_idx: int
-    status: str
-    port: int
+class StatusData(BaseModel):
+    idx: Optional[int] = Field(None, description="Status ID")
+    user_challenge_idx: int = Field(..., description="User challenge index")
+    status: Optional[str] = Field(None, description="Status value")
+    port: Optional[int] = Field(0, description="Port number")
 
-@dataclass
-class K8sChallengeData:
-    challenge_id: int
-    user_id: int
-    userchallenge_name: str
-    definition: str
+class K8sChallengeData(BaseModel):
+    challenge_id: int = Field(..., description="Challenge ID")
+    user_id: int = Field(..., description="User ID")
+    userchallenge_name: str = Field(..., description="User challenge name")
+    definition: str = Field(..., description="Kubernetes definition")
     

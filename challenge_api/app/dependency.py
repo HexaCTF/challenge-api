@@ -5,16 +5,9 @@ from challenge_api.app.service.userchallenge import UserChallengeService
 from challenge_api.app.service.challenge import ChallengeService
 from challenge_api.app.repository.userchallenge import UserChallengeRepository
 from challenge_api.app.repository.challenge import ChallengeRepository
-from challenge_api.app.manager.k8s import K8sManager
-from challenge_api.app.external.database.database import SessionLocal
-
-# Database 의존성
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+from challenge_api.app.repository.status import StatusRepository
+from challenge_api.app.external.k8s.k8s import K8sManager
+from challenge_api.app.external.database.database import get_db
 
 # Repository 의존성들
 def get_challenge_repository(db: Session = Depends(get_db)):
