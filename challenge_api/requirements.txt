@@ -6,4 +6,4 @@ kubernetes==26.1.0
 psutil
 pydantic
 pytest
-pytest-mock==3.14.0
+pytest-mock==3.14.0 
