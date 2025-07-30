@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class UserChallengeStatusRepository:
+class StatusRepository:
     def __init__(self, session: Session):
         self.session = session
     

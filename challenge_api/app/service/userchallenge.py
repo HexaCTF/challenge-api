@@ -1,13 +1,14 @@
 from typing import Optional
-from challenge_api.app.repository.userchallenge import UserChallengesRepository
+from challenge_api.app.repository.userchallenge import UserChallengeRepository
 from challenge_api.app.repository.challenge import ChallengeRepository
-from challenge_api.app.repository.status import UserChallengeStatusRepository
+from challenge_api.app.repository.status import StatusRepository
 from challenge_api.app.external.k8s import K8sManager
 from challenge_api.app.schema import ChallengeRequest, StatusData, K8sChallengeData
-from challenge_api.exceptions.service import (
+from challenge_api.app.common.exceptions import (
     UserChallengeCreationException,
     InvalidInputValue
 )
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,9 +17,9 @@ logger = logging.getLogger(__name__)
 class UserChallengeService:
     def __init__(
         self, 
-        user_challenge_repo: UserChallengesRepository,
+        user_challenge_repo: UserChallengeRepository,
         challenge_repo: ChallengeRepository,
-        status_repo: UserChallengeStatusRepository,
+        status_repo: StatusRepository,
         k8s_manager: K8sManager
     ):
         self.user_challenge_repo = user_challenge_repo

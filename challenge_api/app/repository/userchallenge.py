@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class UserChallengesRepository:
+class UserChallengeRepository:
     def __init__(self, session: Session, challenge_repo: ChallengeRepository = None):
         self.session = session
         self.challenge_repo = challenge_repo

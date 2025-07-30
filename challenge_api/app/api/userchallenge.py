@@ -7,13 +7,12 @@ import logging
 
 from challenge_api.app.schema import ChallengeRequest
 from challenge_api.app.service.userchallenge import UserChallengeService
-from challenge_api.app.dependencies import get_user_challenge_service
-from challenge_api.exceptions.service import InvalidInputValue, BaseServiceException
-from challenge_api.api.errors import BaseHttpException
+from challenge_api.app.dependency import get_user_challenge_service
+from challenge_api.app.common.exceptions import InvalidInputValue, BaseException
+from challenge_api.app.api.errors import BadRequest, BadGateway, InternalServerError, BaseHttpException
 
 router = APIRouter(prefix='/api/v2/userchallenge', tags=['userchallenge'])
 logger = logging.getLogger(__name__)
-
 
 @router.post('/')
 async def create_challenge(
@@ -24,35 +23,12 @@ async def create_challenge(
     try:
         port = challenge_service.create(request)
         return {'data': {'port': port}}
-    
     except InvalidInputValue as e:
-        raise BaseHttpException(
-            message=e.message,
-            status_code=400
-        )
-    except BaseServiceException as e:
-        raise BaseHttpException(
-            message=e.message,
-            status_code=503
-        )
-    except SQLAlchemyError as e:
-        raise BaseHttpException(
-            message="Database error occurred",
-            status_code=500,
-            details=str(e)
-        )
+        raise BadRequest(details=e.message)
     except ApiException as e:
-        raise BaseHttpException(
-            message="External service error",
-            status_code=502,
-            details=str(e)
-        )
-    except Exception as e:
-        raise BaseHttpException(
-            message="Internal server error",
-            status_code=500,
-            details=str(e)
-        )
+        raise BadGateway(details=str(e))
+    except (BaseException, SQLAlchemyError, Exception) as e:
+        raise InternalServerError(details=str(e))
 
 
 @router.post('/delete')
@@ -68,7 +44,7 @@ async def delete_challenge(
     
     except BaseServiceException as e:
         raise BaseHttpException(
-            message=e.message,
+            message=str(e),
             status_code=503
         )
     except ApiException as e:

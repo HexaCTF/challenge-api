@@ -2,12 +2,11 @@
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from challenge_api.app.service.userchallenge import UserChallengeService
-from challenge_api.app.service.challenge import ChallengeService
 from challenge_api.app.repository.userchallenge import UserChallengeRepository
 from challenge_api.app.repository.challenge import ChallengeRepository
 from challenge_api.app.repository.status import StatusRepository
 from challenge_api.app.external.k8s.k8s import K8sManager
-from challenge_api.app.external.database.database import get_db
+from challenge_api.app.external.database import get_db
 
 # Repository 의존성들
 def get_challenge_repository(db: Session = Depends(get_db)):

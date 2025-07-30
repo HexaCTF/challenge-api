@@ -1,10 +1,11 @@
 from typing import Optional, Dict, Any
 import time
+from typing import List
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
 
 from challenge_api.app.schema import K8sChallengeData, ChallengeRequest
-from challenge_api.exceptions.service import (
+from challenge_api.app.common.exceptions import (
     UserChallengeCreationException,
     UserChallengeDeletionException,
     K8sResourceException
