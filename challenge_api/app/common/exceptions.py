@@ -1,4 +1,4 @@
-
+from typing import Optional
 class BaseException(Exception):
     def __init__(self, message:str):
         super().__init__(message)
@@ -84,4 +84,12 @@ class ChallengeStatusException(BaseException):
 class ChallengeStatusNotFound(ChallengeStatusException):
     def __init__(self, message:str):
         super().__init__(message)
-        
+
+
+class K8sResourceException(BaseException):
+    def __init__(self, message:str):
+        super().__init__(message)
+
+class K8sResourceNotFound(K8sResourceException):
+    def __init__(self, message:str):
+        super().__init__(message)

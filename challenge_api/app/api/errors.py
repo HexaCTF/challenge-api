@@ -1,10 +1,9 @@
-from typing import Tuple, Optional
+from typing import Optional
 from datetime import datetime
 
-from fastapi import Request, JSONResponse
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from fastapi.logger import logger
-
-from .userchallenge import router
 
 class BaseHttpException(Exception):
     """
@@ -89,7 +88,7 @@ class GatewayTimeout(BaseHttpException):
 def create_error_response(
     message: str,
     status_code: int,
-) -> Tuple[Response, int]:
+) -> JSONResponse:
     """
     Create standardized error response
     
@@ -98,7 +97,7 @@ def create_error_response(
         status_code (int): HTTP status code
         
     Returns:
-        Tuple[Response, int]: JSON response with error message and status code
+        JSONResponse: JSON response with error message and status code
     """
     response = {
         'error': {
@@ -107,48 +106,7 @@ def create_error_response(
         'timestamp': datetime.utcnow().isoformat()
     }
     
-    return jsonify(response), status_code
-
-# Global exception handler for BaseHttpException
-@router.exception_handler(BaseHttpException)
-async def handle_http_exception(request: Request, error: BaseHttpException):
-    """
-    Global error handler for all BaseHttpException instances
-    
-    Args:
-        request (Request): The FastAPI request object
-        error (BaseHttpException): The caught exception instance
-        
-    Returns:
-        JSONResponse: Standardized error response
-    """
-    
-    # Create log message with context information
-    log_data = {
-        'error_type': type(error).__name__,
-        'status_code': error.status_code,
-        'endpoint': request.url.path,
-        'method': request.method,
-        'url': str(request.url),
-        'client_host': request.client.host if request.client else None,
-    }
-    
-    if error.details:
-        log_data['details'] = error.details
-    
-    logger.error(
-        f"Error: {error.message}",
-        extra=log_data
-    )
-    
-    response_data = {
-        'error': {
-            'message': error.message,
-        },
-        'timestamp': datetime.utcnow().isoformat()
-    }
-    
     return JSONResponse(
-        status_code=error.status_code,
-        content=response_data
+        status_code=status_code,
+        content=response
     )
