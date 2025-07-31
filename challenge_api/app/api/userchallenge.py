@@ -1,8 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends
 from sqlalchemy.exc import SQLAlchemyError
 from kubernetes.client.rest import ApiException
-from datetime import datetime
 import logging
 
 from challenge_api.app.schema import ChallengeRequest
@@ -19,16 +17,16 @@ async def create_challenge(
     request: ChallengeRequest,
     challenge_service: UserChallengeService = Depends(get_user_challenge_service),
 ):
-    """사용자 챌린지 생성"""
+    """Create userchallenge"""
     try:
         port = challenge_service.create(request)
         return {'data': {'port': port}}
     except InvalidInputValue as e:
-        raise BadRequest(details=e.message)
+        raise BadRequest(error_msg=e.message)
     except ApiException as e:
-        raise BadGateway(details=str(e))
+        raise BadGateway(error_msg=str(e))
     except (BaseException, SQLAlchemyError, Exception) as e:
-        raise InternalServerError(details=str(e))
+        raise InternalServerError(error_msg=str(e))
 
 
 @router.post('/delete')
@@ -51,13 +49,13 @@ async def delete_challenge(
         raise BaseHttpException(
             message="External service error",
             status_code=502,
-            details=str(e)
+            error_msg=str(e)
         )
     except Exception as e:
         raise BaseHttpException(
             message="Internal server error",
             status_code=500,
-            details=str(e)
+            error_msg=str(e)
         )
 
 
@@ -82,5 +80,5 @@ async def get_challenge_status(
         raise BaseHttpException(
             message="Internal server error",
             status_code=500,
-            details=str(e)
+            error_msg=str(e)
         )

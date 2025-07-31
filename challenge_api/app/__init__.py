@@ -86,8 +86,8 @@ class FastAPIApp:
                 'client_host': request.client.host if request.client else None,
             }
             
-            if error.details:
-                log_data['details'] = error.details
+            if error.error_msg:
+                log_data['error_msg'] = error.error_msg
             
             # Log the error
             print(f"Error: {error.message}")  # Simple logging for now
