@@ -75,14 +75,14 @@ class UserChallengeService:
                 )
             
             # 2. 챌린지 삭제
-            self.user_challenge_repo.delete(existing_user_challenge.idx)
+            self.user_challenge_repo.delete(existing_user_challenge.user_challenge_idx)
             
             # 3. K8s 리소스 삭제
-            self.k8s_manager.delete(existing_user_challenge.idx)
+            self.k8s_manager.delete(existing_user_challenge.user_challenge_idx)
             
             # 4. 상태 업데이트 
             self.status_repo.update(
-                user_challenge_idx=existing_user_challenge.idx,
+                user_challenge_idx=existing_user_challenge.user_challenge_idx,
                 status='Deleted',
                 port=0
             )
