@@ -6,7 +6,9 @@ from challenge_api.app.external.k8s import K8sManager
 from challenge_api.app.schema import ChallengeRequest, StatusData, K8sChallengeData
 from challenge_api.app.common.exceptions import (
     UserChallengeCreationException,
-    InvalidInputValue
+    UserChallengeDeletionException,
+    UserChallengeNotFound,
+
 )
 
 import logging
@@ -46,17 +48,49 @@ class UserChallengeService:
             existing_challenge = self._get_existing_user_challenge(data)
             
             if existing_challenge:
-                logger.info(f"Found existing challenge for user {data.user_id}, challenge {data.challenge_id}")
                 return self._handle_existing_challenge(existing_challenge)
             
             # 2. 새로운 챌린지 생성
-            logger.info(f"Creating new challenge for user {data.user_id}, challenge {data.challenge_id}")
             return self._create_new_user_challenge(data)
             
         except Exception as e:
-            logger.error(f"Failed to create user challenge: {str(e)}")
             raise UserChallengeCreationException(
                 message=f"Failed to create challenge for user {data.user_id}: {str(e)}"
+            )
+    
+    def delete(self, data: ChallengeRequest) -> None:
+        """
+        사용자 챌린지를 삭제합니다.
+        
+        Args:
+            data: 챌린지 삭제 요청 데이터
+        """
+        try:
+            # 1. 기존 챌린지 상태 확인
+            existing_user_challenge = self._get_existing_user_challenge(data)
+            
+            if not existing_user_challenge:
+                raise UserChallengeNotFound(
+                    message=f"No existing challenge found for user {data.user_id}, challenge {data.challenge_id}"
+                )
+            
+            # 2. 챌린지 삭제
+            self.user_challenge_repo.delete(existing_user_challenge.user_challenge_idx)
+            
+            # 3. K8s 리소스 삭제
+            self.k8s_manager.delete(existing_user_challenge.user_challenge_idx)
+            
+            # 4. 상태 업데이트 
+            self.status_repo.update(
+                user_challenge_idx=existing_user_challenge.user_challenge_idx,
+                status='Deleted',
+                port=0
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to delete user challenge: {str(e)}")
+            raise UserChallengeDeletionException(
+                message=f"Failed to delete challenge for user {data.user_id}: {str(e)}"
             )
     
     def _get_existing_user_challenge(self, data: ChallengeRequest) -> Optional[StatusData]:
