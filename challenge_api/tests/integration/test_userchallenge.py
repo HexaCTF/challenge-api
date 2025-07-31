@@ -70,9 +70,9 @@ def test_app(user_challenge_service):
             'timestamp': '2024-01-01T00:00:00'  # Fixed timestamp for testing
         }
         
-        # Add details if available
-        if error.details:
-            response_data['error']['details'] = error.details
+        # Add error_msg if available
+        if error.error_msg:
+            response_data['error']['error_msg'] = error.error_msg
         
         from fastapi.responses import JSONResponse
         return JSONResponse(
@@ -99,11 +99,11 @@ def test_app(user_challenge_service):
             port = challenge_service.create(request)
             return {'data': {'port': port}}
         except InvalidInputValue as e:
-            raise BadRequest(details=e.message)
+            raise BadRequest(error_msg=e.message)
         except UserChallengeCreationException as e:
-            raise BadGateway(details=str(e))
+            raise BadGateway(error_msg=str(e))
         except Exception as e:
-            raise InternalServerError(details=str(e))
+            raise InternalServerError(error_msg=str(e))
     
     app.include_router(test_router)
     return app
@@ -251,7 +251,7 @@ class TestUserChallengeAPIIntegration:
         # Assert
         assert response.status_code == 502  # BadGateway
         response_data = response.json()
-        assert "Failed to create challenge for user" in response_data['error']['details']
+        assert "Failed to create challenge for user" in response_data['error']['error_msg']
 
     def test_create_challenge_integration_k8s_failure(self, client, user_challenge_service, 
                                                     sample_challenge_request, mock_user_challenge, mock_status_data):
@@ -290,7 +290,7 @@ class TestUserChallengeAPIIntegration:
         # Assert
         assert response.status_code == 502  # BadGateway
         response_data = response.json()
-        assert "Failed to start challenge" in response_data['error']['details']
+        assert "Failed to start challenge" in response_data['error']['error_msg']
 
     def test_create_challenge_integration_validation_error(self, client):
         """Test API with invalid request data"""
@@ -340,7 +340,7 @@ class TestUserChallengeAPIIntegration:
             # Assert
             assert response.status_code == 400  # BadRequest
             response_data = response.json()
-            assert "Invalid challenge_id" in response_data['error']['details']
+            assert "Invalid challenge_id" in response_data['error']['error_msg']
 
     def test_create_challenge_integration_general_exception(self, client, user_challenge_service, 
                                                           sample_challenge_request):
@@ -362,7 +362,7 @@ class TestUserChallengeAPIIntegration:
             # Assert
             assert response.status_code == 500  # InternalServerError
             response_data = response.json()
-            assert "Unexpected error" in response_data['error']['details']
+            assert "Unexpected error" in response_data['error']['error_msg']
 
 
 class TestUserChallengeServiceIntegration:

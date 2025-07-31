@@ -33,9 +33,9 @@ def test_app(mock_user_challenge_service):
             'timestamp': '2024-01-01T00:00:00'  # Fixed timestamp for testing
         }
         
-        # Add details if available
-        if error.details:
-            response_data['error']['details'] = error.details
+        # Add error_msg if available
+        if error.error_msg:
+            response_data['error']['error_msg'] = error.error_msg
         
         return JSONResponse(
             status_code=error.status_code,
@@ -60,11 +60,11 @@ def test_app(mock_user_challenge_service):
             port = challenge_service.create(request)
             return {'data': {'port': port}}
         except InvalidInputValue as e:
-            raise BadRequest(details=e.message)
+            raise BadRequest(error_msg=e.message)
         except ApiException as e:
-            raise BadGateway(details=str(e))
+            raise BadGateway(error_msg=str(e))
         except (BaseException, SQLAlchemyError, Exception) as e:
-            raise InternalServerError(details=str(e))
+            raise InternalServerError(error_msg=str(e))
     
     app.include_router(router)
     return app
@@ -117,8 +117,8 @@ class TestCreateChallenge:
     def test_create_challenge_invalid_input(self, client, mock_user_challenge_service, valid_challenge_request):
         """Test challenge creation with invalid input"""
         # Arrange
-        error_details = "Invalid challenge_id"
-        mock_user_challenge_service.create.side_effect = InvalidInputValue(message=error_details)
+        error_error_msg = "Invalid challenge_id"
+        mock_user_challenge_service.create.side_effect = InvalidInputValue(message=error_error_msg)
         
         # Act
         response = client.post('/api/v2/userchallenge/', json=valid_challenge_request)
@@ -127,8 +127,8 @@ class TestCreateChallenge:
         assert response.status_code == 400
         response_data = response.json()
         assert 'error' in response_data
-        assert 'details' in response_data['error']
-        assert error_details in response_data['error']['details']
+        assert 'error_msg' in response_data['error']
+        assert error_error_msg in response_data['error']['error_msg']
 
     def test_create_challenge_kubernetes_api_exception(self, client, mock_user_challenge_service, valid_challenge_request):
         """Test challenge creation with Kubernetes API exception"""
@@ -143,8 +143,8 @@ class TestCreateChallenge:
         assert response.status_code == 502  # BadGateway
         response_data = response.json()
         assert 'error' in response_data
-        assert 'details' in response_data['error']
-        assert api_error in response_data['error']['details']
+        assert 'error_msg' in response_data['error']
+        assert api_error in response_data['error']['error_msg']
 
     def test_create_challenge_sqlalchemy_error(self, client, mock_user_challenge_service, valid_challenge_request):
         """Test challenge creation with SQLAlchemy error"""
@@ -159,8 +159,8 @@ class TestCreateChallenge:
         assert response.status_code == 500  # InternalServerError
         response_data = response.json()
         assert 'error' in response_data
-        assert 'details' in response_data['error']
-        assert db_error in response_data['error']['details']
+        assert 'error_msg' in response_data['error']
+        assert db_error in response_data['error']['error_msg']
 
     def test_create_challenge_user_challenge_creation_exception(self, client, mock_user_challenge_service, valid_challenge_request):
         """Test challenge creation with UserChallengeCreationException"""
@@ -175,8 +175,8 @@ class TestCreateChallenge:
         assert response.status_code == 500  # InternalServerError
         response_data = response.json()
         assert 'error' in response_data
-        assert 'details' in response_data['error']
-        assert service_error in response_data['error']['details']
+        assert 'error_msg' in response_data['error']
+        assert service_error in response_data['error']['error_msg']
 
     def test_create_challenge_generic_exception(self, client, mock_user_challenge_service, valid_challenge_request):
         """Test challenge creation with generic exception"""
@@ -191,8 +191,8 @@ class TestCreateChallenge:
         assert response.status_code == 500  # InternalServerError
         response_data = response.json()
         assert 'error' in response_data
-        assert 'details' in response_data['error']
-        assert unexpected_error in response_data['error']['details']
+        assert 'error_msg' in response_data['error']
+        assert unexpected_error in response_data['error']['error_msg']
 
     @pytest.mark.parametrize("invalid_request,expected_status", [
         ({"challenge_id": 1}, 422),  # Missing user_id
