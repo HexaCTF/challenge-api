@@ -34,29 +34,24 @@ async def delete_challenge(
     request: ChallengeRequest,
     challenge_service: UserChallengeService = Depends(get_user_challenge_service),
 ):
-    """사용자 챌린지 삭제"""
+    """Delete userchallenge
+
+    Args:
+        request: ChallengeRequest
+        challenge_service: UserChallengeService
+        
+    Returns:
+        dict: {'message': 'UserChallenge deleted successfully.'}
+    """
     try:
-        # TODO: delete 메서드를 UserChallengeService에 추가해야 함
-        # challenge_service.delete(request)
+        challenge_service.delete(request)
         return {'message': 'UserChallenge deleted successfully.'}
-    
-    except BaseServiceException as e:
-        raise BaseHttpException(
-            message=str(e),
-            status_code=503
-        )
+    except InvalidInputValue as e:
+        raise BadRequest(error_msg=e.message)
     except ApiException as e:
-        raise BaseHttpException(
-            message="External service error",
-            status_code=502,
-            error_msg=str(e)
-        )
-    except Exception as e:
-        raise BaseHttpException(
-            message="Internal server error",
-            status_code=500,
-            error_msg=str(e)
-        )
+        raise BadGateway(error_msg=str(e))
+    except (BaseException, SQLAlchemyError, Exception) as e:
+        raise InternalServerError(error_msg=str(e))
 
 
 @router.post('/status')
@@ -71,7 +66,7 @@ async def get_challenge_status(
         # return {'data': {'port': status.port, 'status': status.status}}
         return {'data': {'port': 0, 'status': 'None'}}
     
-    except BaseServiceException as e:
+    except BaseException as e:
         raise BaseHttpException(
             message=e.message,
             status_code=503
