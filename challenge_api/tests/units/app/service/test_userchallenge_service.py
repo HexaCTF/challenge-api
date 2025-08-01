@@ -8,6 +8,7 @@ from challenge_api.app.common.exceptions import (
     UserChallengeCreationException,
     UserChallengeDeletionException,
     UserChallengeNotFound,
+    ChallengeStatusNotFound,
     InvalidInputValue
 )
 
@@ -730,3 +731,298 @@ def test_delete_challenge_general_exception(
     
     assert "Failed to delete challenge for user" in str(exc_info.value)
     assert "General database error" in str(exc_info.value)
+
+
+# ============================================================================
+# get_status 메서드 테스트 케이스들
+# ============================================================================
+
+def test_get_status_success(
+    user_challenge_service, 
+    sample_challenge_request, 
+    mock_user_challenge, 
+    mock_running_status_data
+):
+    """챌린지 상태 조회 성공 시 테스트"""
+    # Arrange
+    # Mock existing user challenge
+    user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
+    
+    # Mock existing status
+    user_challenge_service.status_repo.first.return_value = mock_running_status_data
+    
+    # Act
+    result = user_challenge_service.get_status(sample_challenge_request)
+    
+    # Assert
+    assert result == mock_running_status_data
+    user_challenge_service.user_challenge_repo.get.assert_called_once_with(
+        user_idx=sample_challenge_request.user_id,
+        C_idx=sample_challenge_request.challenge_id
+    )
+    user_challenge_service.status_repo.first.assert_called_once_with(mock_user_challenge.idx)
+
+
+def test_get_status_challenge_not_found(
+    user_challenge_service, 
+    sample_challenge_request
+):
+    """존재하지 않는 챌린지 상태 조회 시 테스트"""
+    # Arrange
+    # Mock no existing challenge
+    user_challenge_service.user_challenge_repo.get.return_value = None
+    
+    # Act & Assert
+    with pytest.raises(ChallengeStatusNotFound) as exc_info:
+        user_challenge_service.get_status(sample_challenge_request)
+    
+    assert "No existing challenge found for user" in str(exc_info.value)
+    assert str(sample_challenge_request.user_id) in str(exc_info.value)
+    assert str(sample_challenge_request.challenge_id) in str(exc_info.value)
+
+
+def test_get_status_no_status_data(
+    user_challenge_service, 
+    sample_challenge_request, 
+    mock_user_challenge
+):
+    """챌린지는 존재하지만 상태 데이터가 없는 경우 테스트"""
+    # Arrange
+    # Mock existing user challenge
+    user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
+    
+    # Mock no status data (exception)
+    user_challenge_service.status_repo.first.side_effect = Exception("Status not found")
+    
+    # Act & Assert
+    with pytest.raises(ChallengeStatusNotFound) as exc_info:
+        user_challenge_service.get_status(sample_challenge_request)
+    
+    assert "No existing challenge found for user" in str(exc_info.value)
+    assert str(sample_challenge_request.user_id) in str(exc_info.value)
+    assert str(sample_challenge_request.challenge_id) in str(exc_info.value)
+
+
+def test_get_status_repository_exception(
+    user_challenge_service, 
+    sample_challenge_request
+):
+    """저장소 예외 발생 시 테스트"""
+    # Arrange
+    # Mock repository exception
+    user_challenge_service.user_challenge_repo.get.side_effect = Exception("Database connection failed")
+    
+    # Act & Assert
+    with pytest.raises(ChallengeStatusNotFound) as exc_info:
+        user_challenge_service.get_status(sample_challenge_request)
+    
+    assert "Failed to get challenge status" in str(exc_info.value)
+    assert "Database connection failed" in str(exc_info.value)
+
+
+def test_get_status_with_different_status_values(
+    user_challenge_service, 
+    sample_challenge_request, 
+    mock_user_challenge
+):
+    """다양한 상태값으로 상태 조회 테스트"""
+    # Arrange
+    user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
+    
+    test_cases = [
+        ("Running", 8080),
+        ("Stopped", 0),
+        ("Error", 0),
+        ("Pending", 0),
+        ("None", 0),
+        ("Deleted", 0)
+    ]
+    
+    for status, port in test_cases:
+        # Reset mock
+        user_challenge_service.status_repo.first.reset_mock()
+        
+        # Create mock status data with current test case
+        mock_status = MagicMock()
+        mock_status.user_challenge_idx = mock_user_challenge.idx
+        mock_status.status = status
+        mock_status.port = port
+        user_challenge_service.status_repo.first.return_value = mock_status
+        
+        # Act
+        result = user_challenge_service.get_status(sample_challenge_request)
+        
+        # Assert
+        assert result == mock_status
+        assert result.status == status
+        assert result.port == port
+
+
+def test_get_status_with_zero_port(
+    user_challenge_service, 
+    sample_challenge_request, 
+    mock_user_challenge
+):
+    """포트가 0인 상태 조회 테스트"""
+    # Arrange
+    user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
+    
+    mock_status = MagicMock()
+    mock_status.user_challenge_idx = mock_user_challenge.idx
+    mock_status.status = "Stopped"
+    mock_status.port = 0
+    user_challenge_service.status_repo.first.return_value = mock_status
+    
+    # Act
+    result = user_challenge_service.get_status(sample_challenge_request)
+    
+    # Assert
+    assert result == mock_status
+    assert result.port == 0
+    assert result.status == "Stopped"
+
+
+def test_get_status_with_high_port_number(
+    user_challenge_service, 
+    sample_challenge_request, 
+    mock_user_challenge
+):
+    """높은 포트 번호 상태 조회 테스트"""
+    # Arrange
+    user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
+    
+    mock_status = MagicMock()
+    mock_status.user_challenge_idx = mock_user_challenge.idx
+    mock_status.status = "Running"
+    mock_status.port = 65535
+    user_challenge_service.status_repo.first.return_value = mock_status
+    
+    # Act
+    result = user_challenge_service.get_status(sample_challenge_request)
+    
+    # Assert
+    assert result == mock_status
+    assert result.port == 65535
+    assert result.status == "Running"
+
+
+def test_get_status_with_large_challenge_id(
+    user_challenge_service, 
+    mock_user_challenge
+):
+    """큰 challenge_id로 상태 조회 테스트"""
+    # Arrange
+    large_request = ChallengeRequest(challenge_id=999999999, user_id=999999999)
+    user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
+    
+    mock_status = MagicMock()
+    mock_status.user_challenge_idx = mock_user_challenge.idx
+    mock_status.status = "Running"
+    mock_status.port = 8080
+    user_challenge_service.status_repo.first.return_value = mock_status
+    
+    # Act
+    result = user_challenge_service.get_status(large_request)
+    
+    # Assert
+    assert result == mock_status
+    user_challenge_service.user_challenge_repo.get.assert_called_once_with(
+        user_idx=999999999,
+        C_idx=999999999
+    )
+
+
+def test_get_status_with_zero_values(
+    user_challenge_service, 
+    mock_user_challenge
+):
+    """0 값으로 상태 조회 테스트"""
+    # Arrange
+    zero_request = ChallengeRequest(challenge_id=0, user_id=0)
+    user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
+    
+    mock_status = MagicMock()
+    mock_status.user_challenge_idx = mock_user_challenge.idx
+    mock_status.status = "None"
+    mock_status.port = 0
+    user_challenge_service.status_repo.first.return_value = mock_status
+    
+    # Act
+    result = user_challenge_service.get_status(zero_request)
+    
+    # Assert
+    assert result == mock_status
+    user_challenge_service.user_challenge_repo.get.assert_called_once_with(
+        user_idx=0,
+        C_idx=0
+    )
+
+
+def test_get_status_status_repo_exception_during_status_lookup(
+    user_challenge_service, 
+    sample_challenge_request, 
+    mock_user_challenge
+):
+    """상태 조회 중 저장소 예외 발생 시 테스트"""
+    # Arrange
+    user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
+    
+    # Mock status repository exception
+    user_challenge_service.status_repo.first.side_effect = Exception("Status table not found")
+    
+    # Act & Assert
+    with pytest.raises(ChallengeStatusNotFound) as exc_info:
+        user_challenge_service.get_status(sample_challenge_request)
+    
+    assert "Failed to get challenge status" in str(exc_info.value)
+    # 실제 코드에서는 _get_existing_user_challenge에서 예외가 발생하면 None을 반환하므로
+    # "No existing challenge found" 메시지가 포함됨
+    assert "No existing challenge found" in str(exc_info.value)
+
+
+def test_get_status_user_challenge_repo_exception_during_lookup(
+    user_challenge_service, 
+    sample_challenge_request
+):
+    """사용자 챌린지 조회 중 저장소 예외 발생 시 테스트"""
+    # Arrange
+    # Mock user challenge repository exception
+    user_challenge_service.user_challenge_repo.get.side_effect = Exception("User challenge table not found")
+    
+    # Act & Assert
+    with pytest.raises(ChallengeStatusNotFound) as exc_info:
+        user_challenge_service.get_status(sample_challenge_request)
+    
+    assert "Failed to get challenge status" in str(exc_info.value)
+    assert "User challenge table not found" in str(exc_info.value)
+
+
+def test_get_status_returns_statusdata_with_correct_structure(
+    user_challenge_service, 
+    sample_challenge_request, 
+    mock_user_challenge
+):
+    """반환되는 StatusData의 구조가 올바른지 테스트"""
+    # Arrange
+    user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
+    
+    # Create a proper StatusData mock with all required attributes
+    mock_status = MagicMock()
+    mock_status.idx = 1
+    mock_status.user_challenge_idx = mock_user_challenge.idx
+    mock_status.status = "Running"
+    mock_status.port = 8080
+    user_challenge_service.status_repo.first.return_value = mock_status
+    
+    # Act
+    result = user_challenge_service.get_status(sample_challenge_request)
+    
+    # Assert
+    assert result == mock_status
+    assert hasattr(result, 'idx')
+    assert hasattr(result, 'user_challenge_idx')
+    assert hasattr(result, 'status')
+    assert hasattr(result, 'port')
+    assert result.user_challenge_idx == mock_user_challenge.idx
+    assert result.status == "Running"
+    assert result.port == 8080

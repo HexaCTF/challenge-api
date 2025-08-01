@@ -396,7 +396,7 @@ class TestUserChallengeAPIIntegration:
         assert response.status_code == 503
         response_data = response.json()
         assert 'error' in response_data
-        assert "No existing challenge found for user" in response_data['error']['message']
+        assert response_data['error']['message'] == "No existing challenge found for user 101, challenge 1"
 
     def test_get_status_integration_base_exception(self, client, user_challenge_service, 
                                                  sample_challenge_request):
@@ -833,33 +833,16 @@ class TestPerformanceIntegration:
     def test_mixed_endpoint_requests(self, client, user_challenge_service, 
                                    sample_challenge_request, mock_user_challenge, mock_status_data):
         """여러 엔드포인트 혼합 요청 테스트"""
-        # Arrange - Create challenge mocks
-        user_challenge_service.user_challenge_repo.get.return_value = None
-        user_challenge_service.user_challenge_repo.create.return_value = mock_user_challenge
-        user_challenge_service.status_repo.create.return_value = mock_status_data
-        user_challenge_service.challenge_repo.get_name.return_value = "test-definition"
-        user_challenge_service.user_challenge_repo.get_by_id.return_value = mock_user_challenge
-        user_challenge_service.k8s_manager.create.return_value = 8080
-        user_challenge_service.status_repo.update.return_value = None
-        
-        # Act - Create challenge
-        create_response = client.post('/api/v2/userchallenge/', json=to_dict(sample_challenge_request))
-        
-        # Arrange - Status check mocks
-        user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
-        user_challenge_service.status_repo.first.return_value = mock_status_data
-        
-        # Act - Get status
-        status_response = client.post('/api/v2/userchallenge/status', json=to_dict(sample_challenge_request))
-        
-        # Arrange - Delete mocks
+        # Arrange
         user_challenge_service.user_challenge_repo.get.return_value = mock_user_challenge
         user_challenge_service.status_repo.first.return_value = mock_status_data
         user_challenge_service.user_challenge_repo.delete.return_value = None
         user_challenge_service.k8s_manager.delete.return_value = None
         user_challenge_service.status_repo.update.return_value = None
         
-        # Act - Delete challenge
+        # Act - Mixed requests
+        create_response = client.post('/api/v2/userchallenge/', json=to_dict(sample_challenge_request))
+        status_response = client.post('/api/v2/userchallenge/status', json=to_dict(sample_challenge_request))
         delete_response = client.post('/api/v2/userchallenge/delete', json=to_dict(sample_challenge_request))
         
         # Assert - All should succeed

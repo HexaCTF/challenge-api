@@ -19,10 +19,10 @@ class UserChallengeData(BaseModel):
     name: Optional[str] = Field(None, description="Challenge name")
 
 class StatusData(BaseModel):
-    idx: Optional[int] = Field(None, description="Status ID")
+    idx: int = Field(..., description="Status ID")
     user_challenge_idx: int = Field(..., description="User challenge index")
-    status: Optional[str] = Field(None, description="Status value")
-    port: Optional[int] = Field(0, description="Port number")
+    status: str = Field(..., description="Status value")
+    port: int = Field(0, description="Port number")
 
 class K8sChallengeData(BaseModel):
     challenge_id: int = Field(..., description="Challenge ID")

@@ -8,7 +8,7 @@ from challenge_api.app.common.exceptions import (
     UserChallengeCreationException,
     UserChallengeDeletionException,
     UserChallengeNotFound,
-
+    ChallengeStatusNotFound,
 )
 
 import logging
@@ -92,7 +92,28 @@ class UserChallengeService:
             raise UserChallengeDeletionException(
                 message=f"Failed to delete challenge for user {data.user_id}: {str(e)}"
             )
-    
+    def get_status(self, data: ChallengeRequest) -> StatusData:
+        """
+        사용자 챌린지의 상태를 조회합니다.
+        
+        Args:
+            data: 챌린지 요청 데이터
+        """
+        try:
+            # 1. 기존 챌린지 상태 확인
+            existing_user_challenge = self._get_existing_user_challenge(data)
+            
+            if not existing_user_challenge:
+                raise ChallengeStatusNotFound(
+                    message=f"No existing challenge found for user {data.user_id}, challenge {data.challenge_id}"
+                )
+            
+            return existing_user_challenge
+        except Exception as e:
+            raise ChallengeStatusNotFound(
+                message=f"Failed to get challenge status: {str(e)}"
+            )
+        
     def _get_existing_user_challenge(self, data: ChallengeRequest) -> Optional[StatusData]:
         """
         기존 사용자 챌린지가 있는지 확인합니다.

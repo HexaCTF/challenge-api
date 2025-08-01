@@ -61,10 +61,8 @@ async def get_challenge_status(
 ):
     """사용자 챌린지 최근 상태 조회"""
     try:
-        # TODO: get_status 메서드를 UserChallengeService에 추가해야 함
-        # status = challenge_service.get_status(request)
-        # return {'data': {'port': status.port, 'status': status.status}}
-        return {'data': {'port': 0, 'status': 'None'}}
+        status = challenge_service.get_status(request)
+        return {'data': {'port': status.port, 'status': status.status}}
     
     except BaseException as e:
         raise BaseHttpException(
