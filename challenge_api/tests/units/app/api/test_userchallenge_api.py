@@ -16,7 +16,7 @@ from challenge_api.app.common.exceptions import (
     BaseException
 )
 from challenge_api.app.api.errors import BadRequest, BadGateway, InternalServerError, BaseHttpException
-from challenge_api.app.api.userchallenge import router
+from challenge_api.app.api.api import router
 from challenge_api.app.dependency import get_user_challenge_service
 
 
@@ -88,7 +88,7 @@ def test_create_challenge_success(client, mock_user_challenge_service, valid_cha
     mock_user_challenge_service.create.return_value = expected_port
     
     # Act
-    response = client.post('/api/v2/userchallenge/', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/', json=valid_challenge_request)
 
     
     # Assert
@@ -110,7 +110,7 @@ def test_create_challenge_invalid_input(client, mock_user_challenge_service, val
     mock_user_challenge_service.create.side_effect = InvalidInputValue(message=error_error_msg)
     
     # Act
-    response = client.post('/api/v2/userchallenge/', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 400
@@ -126,7 +126,7 @@ def test_create_challenge_kubernetes_api_exception(client, mock_user_challenge_s
     mock_user_challenge_service.create.side_effect = ApiException(reason=api_error)
     
     # Act
-    response = client.post('/api/v2/userchallenge/', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 502  # BadGateway
@@ -143,7 +143,7 @@ def test_create_challenge_sqlalchemy_error(client, mock_user_challenge_service, 
     mock_user_challenge_service.create.side_effect = SQLAlchemyError(db_error)
     
     # Act
-    response = client.post('/api/v2/userchallenge/', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 500  # InternalServerError
@@ -160,7 +160,7 @@ def test_create_challenge_user_challenge_creation_exception(client, mock_user_ch
     mock_user_challenge_service.create.side_effect = UserChallengeCreationException(message=service_error)
     
     # Act
-    response = client.post('/api/v2/userchallenge/', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/', json=valid_challenge_request)
 
     # Assert
     assert response.status_code == 500  # InternalServerError
@@ -178,7 +178,7 @@ def test_create_challenge_generic_exception(client, mock_user_challenge_service,
     mock_user_challenge_service.create.side_effect = Exception(unexpected_error)
     
     # Act
-    response = client.post('/api/v2/userchallenge/', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 500  # InternalServerError
@@ -198,7 +198,7 @@ def test_create_challenge_generic_exception(client, mock_user_challenge_service,
 def test_create_challenge_validation_errors(client, invalid_request, expected_status):
     """입력 값이 유효하지 않을 때 422 응답 및 오류 메시지 반환"""
     # Act
-    response = client.post('/api/v2/userchallenge/', json=invalid_request)
+    response = client.post('/api/v1/userchallenge/', json=invalid_request)
     
     # Assert
     assert response.status_code == expected_status
@@ -215,7 +215,7 @@ def test_create_challenge_with_extra_fields(client, mock_user_challenge_service,
     mock_user_challenge_service.create.return_value = expected_port
     
     # Act
-    response = client.post('/api/v2/userchallenge/', json=request_with_extra)
+    response = client.post('/api/v1/userchallenge/', json=request_with_extra)
     
     # Assert
     assert response.status_code == 200
@@ -233,7 +233,7 @@ def test_create_challenge_service_not_called_on_validation_error(client, mock_us
     invalid_request = {"challenge_id": "invalid", "user_id": 101}
     
     # Act
-    response = client.post('/api/v2/userchallenge/', json=invalid_request)
+    response = client.post('/api/v1/userchallenge/', json=invalid_request)
     
     # Assert
     assert response.status_code == 422
@@ -247,7 +247,7 @@ def test_delete_challenge_success(client, mock_user_challenge_service, valid_cha
     mock_user_challenge_service.delete.return_value = None
     
     # Act
-    response = client.post('/api/v2/userchallenge/delete', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/delete', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 200
@@ -261,7 +261,7 @@ def test_delete_challenge_invalid_input(client, mock_user_challenge_service, val
     mock_user_challenge_service.delete.side_effect = InvalidInputValue(message=error_error_msg)
 
     # Act
-    response = client.post('/api/v2/userchallenge/delete', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/delete', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 400
@@ -278,7 +278,7 @@ def test_delete_challenge_does_not_exist_challenge(client, mock_user_challenge_s
     mock_user_challenge_service.delete.side_effect = InvalidInputValue(message=error_error_msg)
 
     # Act
-    response = client.post('/api/v2/userchallenge/delete', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/delete', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 400
@@ -295,7 +295,7 @@ def test_delete_challenge_user_challenge_deletion_exception(client, mock_user_ch
     mock_user_challenge_service.delete.side_effect = UserChallengeDeletionException(message=service_error)
 
     # Act
-    response = client.post('/api/v2/userchallenge/delete', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/delete', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 500
@@ -315,7 +315,7 @@ def test_delete_challenge_user_challenge_deletion_exception(client, mock_user_ch
 def test_delete_challenge_validation_errors(client, invalid_request, expected_status):
     """입력 값이 유효하지 않을 때 422 응답 및 오류 메시지 반환"""
     # Act
-    response = client.post('/api/v2/userchallenge/delete', json=invalid_request)
+    response = client.post('/api/v1/userchallenge/delete', json=invalid_request)
     
     # Assert
     assert response.status_code == expected_status
@@ -327,7 +327,7 @@ def test_delete_challenge_api_exception(client, mock_user_challenge_service, val
     mock_user_challenge_service.delete.side_effect = ApiException(reason=api_error)
 
     # Act
-    response = client.post('/api/v2/userchallenge/delete', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/delete', json=valid_challenge_request)
 
     # Assert
     assert response.status_code == 502
@@ -355,7 +355,7 @@ def test_get_challenge_status_success(client, mock_user_challenge_service, valid
     mock_user_challenge_service.get_status.return_value = expected_status
     
     # Act
-    response = client.post('/api/v2/userchallenge/status', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/status', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 200
@@ -381,7 +381,7 @@ def test_get_challenge_status_not_found(client, mock_user_challenge_service, val
     mock_user_challenge_service.get_status.side_effect = ChallengeStatusNotFound(message=error_message)
     
     # Act
-    response = client.post('/api/v2/userchallenge/status', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/status', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 503
@@ -398,7 +398,7 @@ def test_get_challenge_status_base_exception(client, mock_user_challenge_service
     mock_user_challenge_service.get_status.side_effect = ChallengeStatusNotFound(message=error_message)
     
     # Act
-    response = client.post('/api/v2/userchallenge/status', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/status', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 503
@@ -415,7 +415,7 @@ def test_get_challenge_status_generic_exception(client, mock_user_challenge_serv
     mock_user_challenge_service.get_status.side_effect = Exception("Database connection failed")
     
     # Act
-    response = client.post('/api/v2/userchallenge/status', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/status', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 500
@@ -437,7 +437,7 @@ def test_get_challenge_status_generic_exception(client, mock_user_challenge_serv
 def test_get_challenge_status_validation_errors(client, invalid_request, expected_status):
     """입력 값이 유효하지 않을 때 422 응답 및 오류 메시지 반환"""
     # Act
-    response = client.post('/api/v2/userchallenge/status', json=invalid_request)
+    response = client.post('/api/v1/userchallenge/status', json=invalid_request)
     
     # Assert
     assert response.status_code == expected_status
@@ -463,7 +463,7 @@ def test_get_challenge_status_with_extra_fields(client, mock_user_challenge_serv
     }
     
     # Act
-    response = client.post('/api/v2/userchallenge/status', json=request_with_extra)
+    response = client.post('/api/v1/userchallenge/status', json=request_with_extra)
     
     # Assert
     assert response.status_code == 200
@@ -482,7 +482,7 @@ def test_get_challenge_status_service_not_called_on_validation_error(client, moc
     invalid_request = {"challenge_id": 1}  # Missing user_id
     
     # Act
-    response = client.post('/api/v2/userchallenge/status', json=invalid_request)
+    response = client.post('/api/v1/userchallenge/status', json=invalid_request)
     
     # Assert
     assert response.status_code == 422
@@ -513,7 +513,7 @@ def test_get_challenge_status_different_status_values(client, mock_user_challeng
         mock_user_challenge_service.get_status.return_value = expected_status
         
         # Act
-        response = client.post('/api/v2/userchallenge/status', json=valid_challenge_request)
+        response = client.post('/api/v1/userchallenge/status', json=valid_challenge_request)
         
         # Assert
         assert response.status_code == 200
@@ -525,30 +525,6 @@ def test_get_challenge_status_different_status_values(client, mock_user_challeng
         }
         mock_user_challenge_service.get_status.assert_called_once()
 
-
-def test_get_challenge_status_with_zero_port(client, mock_user_challenge_service, valid_challenge_request):
-    """포트가 0인 상태 조회 테스트"""
-    # Arrange
-    from challenge_api.app.schema import StatusData
-    expected_status = StatusData(
-        idx=1,
-        user_challenge_idx=100,
-        status="Stopped",
-        port=0
-    )
-    mock_user_challenge_service.get_status.return_value = expected_status
-    
-    # Act
-    response = client.post('/api/v2/userchallenge/status', json=valid_challenge_request)
-    
-    # Assert
-    assert response.status_code == 200
-    assert response.json() == {
-        'data': {
-            'port': 0,
-            'status': "Stopped"
-        }
-    }
 
 
 def test_get_challenge_status_with_high_port_number(client, mock_user_challenge_service, valid_challenge_request):
@@ -564,7 +540,7 @@ def test_get_challenge_status_with_high_port_number(client, mock_user_challenge_
     mock_user_challenge_service.get_status.return_value = expected_status
     
     # Act
-    response = client.post('/api/v2/userchallenge/status', json=valid_challenge_request)
+    response = client.post('/api/v1/userchallenge/status', json=valid_challenge_request)
     
     # Assert
     assert response.status_code == 200

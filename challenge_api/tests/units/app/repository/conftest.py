@@ -7,10 +7,8 @@ from unittest.mock import MagicMock, patch
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 
-from challenge_api.app.model.model import Challenges, UserChallenges, UserChallengeStatus
-from challenge_api.app.repository.challenge import ChallengeRepository
-from challenge_api.app.repository.userchallenge import UserChallengesRepository
-from challenge_api.app.repository.status import UserChallengeStatusRepository
+from challenge_api.app.model import Challenges, UserChallenges, UserChallengeStatus
+from challenge_api.app.repository import ChallengeRepository, UserChallengeRepository, StatusRepository
 from challenge_api.app.common.exceptions import (
     RepositoryException, 
     ChallengeRepositoryException, 
@@ -106,21 +104,21 @@ def challenge_repo(mock_session):
 
 @pytest.fixture
 def userchallenge_repo(mock_session):
-    """Create a UserChallengesRepository instance with mock session"""
+    """Create a UserChallengeRepository instance with mock session"""
     mock_challenge_repo = MockObjectFactory.create_mock_challenge_repo()
-    return UserChallengesRepository(session=mock_session, challenge_repo=mock_challenge_repo)
+    return UserChallengeRepository(session=mock_session, challenge_repo=mock_challenge_repo)
 
 
 @pytest.fixture
 def userchallenge_repo_no_challenge(mock_session):
-    """Create a UserChallengesRepository instance without challenge repo"""
-    return UserChallengesRepository(session=mock_session)
+    """Create a UserChallengeRepository instance without challenge repo"""
+    return UserChallengeRepository(session=mock_session)
 
 
 @pytest.fixture
 def status_repo(mock_session):
-    """Create a UserChallengeStatusRepository instance with mock session"""
-    return UserChallengeStatusRepository(session=mock_session)
+    """Create a StatusRepository instance with mock session"""
+    return StatusRepository(session=mock_session)
 
 
 # ============================================================================

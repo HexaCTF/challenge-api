@@ -6,9 +6,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from sqlalchemy.exc import SQLAlchemyError
 
-from challenge_api.app.repository.userchallenge import UserChallengesRepository
-from challenge_api.app.repository.challenge import ChallengeRepository
-from challenge_api.app.model.model import UserChallenges
+from challenge_api.app.repository import UserChallengeRepository, ChallengeRepository
+from challenge_api.app.model import UserChallenges
 from challenge_api.app.common.exceptions import InvalidInputValue, UserChallengeRepositoryException
 
 from .conftest import (
@@ -22,14 +21,14 @@ from .conftest import (
 # Repository Initialization Tests
 def test_init_with_challenge_repo(mock_session, mock_challenge_repo):
     """Test repository initialization with challenge repo"""
-    repo = UserChallengesRepository(mock_session, mock_challenge_repo)
+    repo = UserChallengeRepository(mock_session, mock_challenge_repo)
     assert repo.session == mock_session
     assert repo.challenge_repo == mock_challenge_repo
 
 
 def test_init_without_challenge_repo(mock_session):
     """Test repository initialization without challenge repo"""
-    repo = UserChallengesRepository(mock_session)
+    repo = UserChallengeRepository(mock_session)
     assert repo.session == mock_session
     assert repo.challenge_repo is None
 
@@ -517,7 +516,7 @@ def test_update_with_none_values(userchallenge_repo, mock_session, mock_userchal
 def test_create_with_real_database(real_session):
     """Integration test: Test create with real database"""
     challenge_repo = ChallengeRepository(real_session)
-    repo = UserChallengesRepository(real_session, challenge_repo)
+    repo = UserChallengeRepository(real_session, challenge_repo)
     assert repo.session == real_session
     assert repo.challenge_repo == challenge_repo
 
@@ -525,5 +524,5 @@ def test_create_with_real_database(real_session):
 @pytest.mark.skip(reason="Requires test database setup")
 def test_get_by_id_with_real_database(real_session):
     """Integration test: Test get_by_id with real database"""
-    repo = UserChallengesRepository(real_session)
+    repo = UserChallengeRepository(real_session)
     assert repo.session == real_session 

@@ -9,7 +9,7 @@ from challenge_api.app.dependency import get_user_challenge_service
 from challenge_api.app.common.exceptions import InvalidInputValue, BaseException
 from challenge_api.app.api.errors import BadRequest, BadGateway, InternalServerError, BaseHttpException
 
-router = APIRouter(prefix='/api/v2/userchallenge', tags=['userchallenge'])
+router = APIRouter(prefix='/api/v1/userchallenge', tags=['userchallenge'])
 logger = logging.getLogger(__name__)
 
 @router.post('/')

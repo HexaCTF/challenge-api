@@ -141,7 +141,14 @@ class StatusRepository:
             updatable_fields = ['status', 'port']
             for field in updatable_fields:
                 if field in kwargs:
-                    setattr(status, field, kwargs[field])
+                    value = kwargs[field]
+                    if value is None:
+                        # None 값이 들어오면 기본값 설정
+                        if field == 'status':
+                            value = 'None'
+                        elif field == 'port':
+                            value = 0
+                    setattr(status, field, value)
             
             self.session.commit()
             

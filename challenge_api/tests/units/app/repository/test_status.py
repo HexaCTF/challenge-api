@@ -6,8 +6,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from sqlalchemy.exc import SQLAlchemyError
 
-from challenge_api.app.repository.status import UserChallengeStatusRepository
-from challenge_api.app.model.model import UserChallengeStatus
+from challenge_api.app.repository import StatusRepository
+from challenge_api.app.model import UserChallengeStatus
 from challenge_api.app.schema import StatusData
 from challenge_api.app.common.exceptions import InvalidInputValue, StatusRepositoryException
 
@@ -22,7 +22,7 @@ from .conftest import (
 # Repository Initialization Tests
 def test_init(mock_session):
     """Test repository initialization"""
-    repo = UserChallengeStatusRepository(mock_session)
+    repo = StatusRepository(mock_session)
     assert repo.session == mock_session
 
 
@@ -385,20 +385,20 @@ def test_update_with_none_values(status_repo, mock_session, mock_status):
     result = status_repo.update(**kwargs)
 
     # Assert
-    assert result.status is None
-    assert result.port is None
+    assert result.status == 'None'  # None 값이 들어오면 기본값 'None'으로 설정
+    assert result.port == 0  # None 값이 들어오면 기본값 0으로 설정
 
 
 # Integration Tests (skipped by default)
 @pytest.mark.skip(reason="Requires test database setup")
 def test_create_with_real_database(real_session):
     """Integration test: Test create with real database"""
-    repo = UserChallengeStatusRepository(real_session)
+    repo = StatusRepository(real_session)
     assert repo.session == real_session
 
 
 @pytest.mark.skip(reason="Requires test database setup")
 def test_first_with_real_database(real_session):
     """Integration test: Test first with real database"""
-    repo = UserChallengeStatusRepository(real_session)
+    repo = StatusRepository(real_session)
     assert repo.session == real_session 
