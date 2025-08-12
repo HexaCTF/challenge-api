@@ -9,14 +9,14 @@ This is an API for managing the Challenge object that is Kubernetes Custom Resou
 - (Deprecated) Retrieve Challenge status from the queue and save it to the database.
 
 ## Changelog
-
-### API Framework Updated: Flask → FastAPI
+### v1.1.0 Release
+#### API Framework Updated: Flask → FastAPI
 We migrated from Flask to FastAPI to enhance code maintainability and improve the development experience.
 
-### Database Framework Updated: Flask-SQLAlchemy → SQLAlchemy 2.0+
+#### Database Framework Updated: Flask-SQLAlchemy → SQLAlchemy 2.0+
 We replaced Flask-SQLAlchemy (which was tightly coupled with Flask) with SQLAlchemy 2.0+ to take advantage of modern features and framework independence.
 
-### Kafka Deprecated
+#### Kafka Deprecated
 We removed the Kafka-based message queue infrastructure, as it introduced unnecessary complexity without sufficient benefits.
 
 ## API
